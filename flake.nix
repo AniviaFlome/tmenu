@@ -47,9 +47,9 @@
         }
       );
 
-      homeModules = {
+      homeManagerModules = {
         tmenu = import ./nix/home-manager-module.nix;
-        default = self.homeModules.tmenu;
+        default = self.homeManagerModules.tmenu;
       };
 
       nixosModules = {

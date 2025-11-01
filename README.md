@@ -6,9 +6,15 @@ Vibe coded for personal use. Use it if you want.
 
 ### Using Nix Flakes
 
-```bash
-nix run github:yourusername/tmenu
 ```
+tmenu.url = "github:AniviaFlome/tmenu";
+```
+
+**Available flake outputs:**
+- `packages.<system>.default` - The tmenu package
+- `apps.<system>.default` - Runnable app (`nix run`)
+- `homeManagerModules.tmenu` - Home Manager module
+- `nixosModules.tmenu` - NixOS module
 
 ### Using Home Manager
 
@@ -16,9 +22,11 @@ Add to your `home.nix`:
 
 ```nix
 {
+  imports = [ inputs.tmenu.homeManagerModules.tmenu ];
+
   programs.tmenu = {
     enable = true;
-    theme = "catppuccin-mocha";  # Optional theme
+    theme = "catppuccin-mocha";
 
     # Custom menu items
     menuItems = {
@@ -84,6 +92,8 @@ Add to your `configuration.nix`:
 
 ```nix
 {
+  imports = [ inputs.tmenu.nixosModules.tmenu ];
+
   programs.tmenu.enable = true;
 }
 ```
@@ -92,7 +102,7 @@ Add to your `configuration.nix`:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tmenu
+git clone https://github.com/AniviaFlome/tmenu
 cd tmenu
 
 # Run tmenu
