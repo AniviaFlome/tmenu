@@ -132,13 +132,15 @@ class TMenu:
         # Menu height for items only (separator + items)
         items_height = num_items + 1  # +1 for separator
 
+        # Always center vertically
+        items_start_y = max(0, (height - items_height) // 2)
+        start_y = max(0, items_start_y - title_height)
+        
         if self.centered:
-            # Center the items, then place title above
-            items_start_y = max(0, (height - items_height) // 2)
-            start_y = max(0, items_start_y - title_height)
+            # Center horizontally as well
             start_x = max(0, (width - menu_width) // 2)
         else:
-            start_y = 0
+            # Left-aligned, full width
             start_x = 0
             menu_width = width - 1
 
@@ -195,6 +197,22 @@ class TMenu:
         # Clear item positions for mouse support
         self.item_positions = []
 
+        # Calculate consistent indent for centered text alignment
+        if self.centered:
+            # Find the longest item in visible range for proper centering
+            max_item_len = 0
+            for i in range(visible_lines):
+                item_index = i + self.scroll_offset
+                if item_index >= len(self.all_items):
+                    break
+                item = self.all_items[item_index]
+                truncated_len = min(len(item), menu_width - 2)
+                max_item_len = max(max_item_len, truncated_len)
+            # Calculate indent to center the text block
+            text_indent = (menu_width - max_item_len) // 2
+        else:
+            text_indent = 0
+
         # Draw visible items
         for i in range(visible_lines):
             item_index = i + self.scroll_offset
@@ -209,11 +227,8 @@ class TMenu:
                 item[: menu_width - 2] if len(item) > menu_width - 2 else item
             )
 
-            # Center items if centered mode
-            if self.centered:
-                item_x = start_x + (menu_width - len(display_item)) // 2
-            else:
-                item_x = start_x
+            # Apply consistent text indent for centered mode
+            item_x = start_x + text_indent
 
             # Store position for mouse support
             if self.centered:
@@ -228,11 +243,8 @@ class TMenu:
             # Highlight selected item
             if item_index == self.selected_index:
                 attr = colors["selected"]
-                if self.centered:
-                    # Pad for centered display
-                    display_item = display_item.center(menu_width)
-                else:
-                    display_item = display_item.ljust(menu_width)
+                # Pad with spaces for full-width highlight
+                display_item = " " * text_indent + display_item.ljust(menu_width - text_indent)
                 item_x = start_x
             else:
                 attr = colors["normal"]
