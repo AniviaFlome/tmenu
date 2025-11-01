@@ -16,13 +16,18 @@ Add to your `home.nix`:
 
 ```nix
 {
-  imports = [ inputs.tmenu.homeManagerModules.tmenu ];
+  imports = [ inputs.tmenu.homeManagerModules.default ];
 
   programs.tmenu = {
     enable = true;
     theme = "catppuccin-mocha";
 
-    # Custom menu items
+    display = {
+      centered = true;
+      width = 60;
+      height = 10;
+    };
+
     menuItems = {
       "Terminal" = "alacritty";
       "Browser" = "firefox";
@@ -30,78 +35,14 @@ Add to your `home.nix`:
       "System" = "submenu:System";
     };
 
-    # Submenus (first-class option)
-    submenus = {
-      Development = {
-        "Code Editor" = "code";
-        "Git GUI" = "gitg";
-        "Terminal" = "alacritty --working-directory ~/projects";
-      };
-      System = {
-        "File Manager" = "thunar";
-        "System Monitor" = "htop";
-        "Task Manager" = "gnome-system-monitor";
-      };
-    };
-
-    # Display settings
-    display = {
-      centered = true;  # Center the menu (default)
-      width = 60;       # Menu width
-      height = 10;      # Max visible items
+    submenus.System = {
+      "File Manager" = "thunar";
+      "System Monitor" = "htop";
+      "Task Manager" = "gnome-system-monitor";
     };
   };
 }
-```
 
-With custom colors:
-
-```nix
-{
-  programs.tmenu = {
-    enable = true;
-
-    menuItems = {
-      "Code" = "code";
-      "Terminal" = "kitty";
-    };
-
-    colors = {
-      foreground = "white";
-      background = -1;
-      selectionForeground = "black";
-      selectionBackground = "cyan";
-      promptForeground = "blue";
-    };
-  };
-}
-```
-
-Advanced configuration with `extraConfig`:
-
-```nix
-{
-  programs.tmenu = {
-    enable = true;
-
-    menuItems = {
-      "Terminal" = "alacritty";
-    };
-
-    submenus.Tools = {
-      "Calculator" = "gnome-calculator";
-    };
-
-    # Extra INI configuration for advanced users
-    extraConfig = {
-      display = {
-        title = "My Custom Menu";
-        figlet = true;
-        figlet_font = "slant";
-      };
-    };
-  };
-}
 ```
 
 ### Using NixOS

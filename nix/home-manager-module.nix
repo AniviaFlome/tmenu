@@ -139,7 +139,7 @@ in
       '';
     };
 
-    submenus = mkOption {
+    submenu = mkOption {
       type = types.attrsOf (types.attrsOf types.str);
       default = { };
       example = literalExpression ''
@@ -165,7 +165,7 @@ in
     home.packages = [ cfg.package ];
 
     xdg.configFile."tmenu/config.ini" =
-      mkIf (cfg.extraConfig != { } || cfg.colors != { } || cfg.theme != null || cfg.menuItems != { } || cfg.submenus != { })
+      mkIf (cfg.extraConfig != { } || cfg.colors != { } || cfg.theme != null || cfg.menuItems != { } || cfg.submenu != { })
         (
           if cfg.theme != null then
             {
