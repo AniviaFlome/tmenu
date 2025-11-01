@@ -35,7 +35,7 @@ Add to your `home.nix`:
       "System" = "submenu:System";
     };
 
-    submenus.System = {
+    submenu.System = {
       "File Manager" = "thunar";
       "System Monitor" = "htop";
       "Task Manager" = "gnome-system-monitor";
