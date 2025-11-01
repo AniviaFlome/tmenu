@@ -155,7 +155,7 @@ tmenu -c ~/.config/tmenu/custom.ini
 | `Page Down`       | Move down 10 items  |
 | `Enter`           | Select current item |
 | `Escape`          | Go back or exit     |
-| `Q`               | exit                |
+| `Q`               | Exit                |
 
 ### Vim Keys
 

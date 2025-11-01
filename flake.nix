@@ -19,27 +19,33 @@
         "aarch64-linux"
         "x86_64-darwin"
       ];
-      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f system nixpkgs.legacyPackages.${system});
 
-      treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
+      treefmtEval = eachSystem (_system: pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
     in
     {
-      packages = eachSystem (pkgs: {
-        default = pkgs.callPackage ./package.nix { };
-      });
+      packages = eachSystem (
+        _system: pkgs: {
+          default = pkgs.callPackage ./package.nix { };
+        }
+      );
 
-      apps = eachSystem (pkgs: {
-        default = {
-          type = "app";
-          program = "${self.packages.${pkgs.system}.default}/bin/tmenu";
-        };
-      });
+      apps = eachSystem (
+        system: _pkgs: {
+          default = {
+            type = "app";
+            program = "${self.packages.${system}.default}/bin/tmenu";
+          };
+        }
+      );
 
-      formatter = eachSystem (pkgs: treefmtEval.${pkgs.system}.config.build.wrapper);
+      formatter = eachSystem (system: _pkgs: treefmtEval.${system}.config.build.wrapper);
 
-      checks = eachSystem (pkgs: {
-        formatting = treefmtEval.${pkgs.system}.config.build.check self;
-      });
+      checks = eachSystem (
+        system: _pkgs: {
+          formatting = treefmtEval.${system}.config.build.check self;
+        }
+      );
 
       homeManagerModules = {
         tmenu = import ./nix/home-manager-module.nix;
