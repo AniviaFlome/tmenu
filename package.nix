@@ -7,16 +7,22 @@ python3Packages.buildPythonApplication {
   pname = "tmenu";
   version = "0.1.0";
 
-  src = ./..;
+  src = ./.;
 
-  format = "other";
+  pyproject = false;
 
   propagatedBuildInputs = with python3Packages; [
     x256
     pyfiglet
   ];
 
+  # Don't build, just copy files
+  dontBuild = true;
+
+  # Install the application
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/bin
     mkdir -p $out/themes
 
@@ -28,15 +34,27 @@ python3Packages.buildPythonApplication {
     cp src/config.default.ini $out/bin/
 
     # Install themes in parent directory of bin/ (script looks in ../themes/)
-    cp themes/*.ini $out/themes/
+    cp -r themes/* $out/themes/
+
+    runHook postInstall
+  '';
+
+  # Run tests
+  nativeCheckInputs = with python3Packages; [
+    pytestCheckHook
+  ];
+
+  checkPhase = ''
+    runHook preCheck
+    pytest src/test_tmenu.py
+    runHook postCheck
   '';
 
   meta = with lib; {
     description = "A dmenu-like command executor for the terminal";
-    homepage = "https://github.com/AniviaFlome/tmenu";
-    license = licenses.mit0;
-    maintainers = [ AniviaFlome ];
-    platforms = platforms.unix;
+    homepage = "https://github.com/yourusername/tmenu";
+    license = licenses.mit;
+    maintainers = [ ];
     mainProgram = "tmenu";
   };
 }

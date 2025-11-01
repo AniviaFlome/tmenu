@@ -6,9 +6,19 @@
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
-  outputs = { self, nixpkgs, treefmt-nix, ... }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      treefmt-nix,
+      ...
+    }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+      ];
       eachSystem = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
 
       treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
@@ -31,10 +41,14 @@
         formatting = treefmtEval.${pkgs.system}.config.build.check self;
       });
 
-      homeManagerModules.default = import ./nix/home-manager-module.nix;
-      homeManagerModule = self.homeManagerModules.default;
+      homeManagerModules = {
+        tmenu = import ./nix/home-manager-module.nix;
+        default = self.homeManagerModules.tmenu;
+      };
 
-      nixosModules.default = import ./nix/nixos-module.nix;
-      nixosModule = self.nixosModules.default;
+      nixosModules = {
+        tmenu = import ./nix/nixos-module.nix;
+        default = self.nixosModules.tmenu;
+      };
     };
 }

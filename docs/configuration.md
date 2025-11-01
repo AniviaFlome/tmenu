@@ -7,7 +7,7 @@ tmenu uses INI format for configuration files. The configuration file contains s
 ### Available Sections
 
 - **`[display]`** - Display and layout settings
-- **`[colors]`** - Color scheme configuration  
+- **`[colors]`** - Color scheme configuration
 - **`[menu]`** - Menu items and commands
 
 ## Custom Menu Imports
@@ -17,6 +17,7 @@ You can extend your menu configuration by adding custom menu files in a director
 ### Enabling Custom Menu Imports
 
 1. Configure the menus directory in your `config.ini`:
+
 ```ini
 [display]
 # Using relative path (recommended)
@@ -28,6 +29,7 @@ themes_dir = menus
 ```
 
 2. Create the menus directory:
+
 ```bash
 # If using relative path 'menus'
 mkdir -p ~/.config/tmenu/menus
@@ -39,6 +41,7 @@ mkdir -p ~/.config/tmenu/menus
 3. Create `.ini` files with menu definitions:
 
 **Example: `~/.config/tmenu/menus/development.ini`**
+
 ```ini
 [menu]
 # Add items to main menu
@@ -52,6 +55,7 @@ DBeaver = dbeaver
 ```
 
 **Example: `~/.config/tmenu/menus/media.ini`**
+
 ```ini
 [menu]
 Media = submenu:Media
@@ -171,6 +175,7 @@ Shutdown = systemctl poweroff
 ### Example Menu Configurations
 
 #### Complete Menu with Submenus
+
 ```ini
 [display]
 title = Main Menu
@@ -208,6 +213,7 @@ Bluetooth = blueman-manager
 ```
 
 #### Nested Submenus
+
 ```ini
 [menu]
 Main Item = command
@@ -226,6 +232,7 @@ Deep Item = command
 ### Basic Colors
 
 Available color names:
+
 - `black` (0)
 - `red` (1)
 - `green` (2)
@@ -236,6 +243,7 @@ Available color names:
 - `white` (7)
 
 You can also use:
+
 - Numbers 0-7 for the colors above
 - `-1` for terminal default (transparent background)
 
@@ -311,10 +319,10 @@ Using Home Manager provides a declarative way to configure tmenu:
 ```nix
 programs.tmenu = {
   enable = true;
-  
+
   # Use a predefined theme
   theme = "catppuccin-mocha";
-  
+
   # Or configure colors manually
   colors = {
     foreground = "white";
@@ -323,7 +331,7 @@ programs.tmenu = {
     selectionBackground = "cyan";
     promptForeground = "blue";
   };
-  
+
   # Or use raw settings
   settings = {
     colors = {
@@ -340,6 +348,7 @@ programs.tmenu = {
 ### Available Themes
 
 Built-in themes:
+
 - `catppuccin-mocha`
 - `gruvbox-dark`
 - `dracula`
@@ -351,11 +360,13 @@ Built-in themes:
 tmenu uses standard terminal colors (0-7) which work on all terminals. For more colors, your terminal must support 256-color or true color mode.
 
 Check your terminal:
+
 ```bash
 echo $TERM
 ```
 
 Common values:
+
 - `xterm-256color` - 256 color support
 - `screen-256color` - tmux/screen with 256 colors
 - `tmux-256color` - tmux with 256 colors
@@ -363,6 +374,7 @@ Common values:
 ### Testing Colors
 
 Test your configuration:
+
 ```bash
 echo -e "test\nitem" | tmenu -i - -c ~/.config/tmenu/config.ini
 ```

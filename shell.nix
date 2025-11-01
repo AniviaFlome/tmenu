@@ -1,10 +1,8 @@
-{ pkgs, treefmt }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 
 pkgs.mkShell {
-  nativeBuildInputs = [
-    treefmt.build.wrapper
-  ];
-
   buildInputs = with pkgs; [
     # Python and dependencies
     python3
@@ -28,7 +26,7 @@ pkgs.mkShell {
     echo "Available commands:"
     echo "  python src/tmenu.py      - Run tmenu"
     echo "  pytest                   - Run tests"
-    echo "  treefmt                  - Format all files"
+    echo "  nix fmt                  - Format all files"
     echo "  flake8 src/              - Lint code"
     echo "  mypy src/                - Type check code"
   '';
