@@ -213,7 +213,7 @@ in
 
             finalSettings =
               cfg.extraConfig
-              // {
+              // optionalAttrs (cfg.display.theme.name == "") {
                 colors = (cfg.extraConfig.colors or { }) // colorSettings;
               }
               // {
