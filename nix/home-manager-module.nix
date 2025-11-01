@@ -59,46 +59,48 @@ in
 
     colors = {
       foreground = mkOption {
-        type = types.nullOr colorType;
-        default = null;
+        type = colorType;
+        default = 7;
         description = "Foreground color for normal text.";
       };
 
       background = mkOption {
-        type = types.nullOr types.int;
-        default = null;
+        type = types.int;
+        default = -1;
         description = "Background color (-1 for terminal default).";
       };
 
       selectionForeground = mkOption {
-        type = types.nullOr colorType;
-        default = null;
+        type = colorType;
+        default = 0;
         description = "Foreground color for selected item.";
       };
 
       selectionBackground = mkOption {
-        type = types.nullOr colorType;
-        default = null;
+        type = colorType;
+        default = 6;
         description = "Background color for selected item.";
       };
 
       promptForeground = mkOption {
-        type = types.nullOr colorType;
-        default = null;
+        type = colorType;
+        default = 4;
         description = "Foreground color for prompt.";
       };
     };
 
-    theme = mkOption {
-      type = types.nullOr (
-        types.enum [
-          "catppuccin-mocha"
-          "gruvbox-dark"
-          "dracula"
-        ]
-      );
-      default = null;
-      description = "Predefined theme to use. Overrides individual color settings.";
+    theme = {
+      name = mkOption {
+        type = types.str;
+        default = "";
+        description = "Predefined theme to use. Leave empty to use manual colors.";
+      };
+
+      dir = mkOption {
+        type = types.str;
+        default = "";
+        description = "Directory path for custom themes.";
+      };
     };
 
     display = {
@@ -118,6 +120,26 @@ in
         type = types.int;
         default = 10;
         description = "Maximum number of items to display at once.";
+      };
+
+      title = mkOption {
+        type = types.str;
+        default = "";
+        description = "Menu title to display at the top.";
+      };
+    };
+
+    figlet = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable ASCII art title with pyfiglet.";
+      };
+
+      font = mkOption {
+        type = types.str;
+        default = "standard";
+        description = "Font to use for figlet (e.g., standard, slant, banner).";
       };
     };
 
@@ -165,10 +187,10 @@ in
     home.packages = [ cfg.package ];
 
     xdg.configFile."tmenu/config.ini" =
-      mkIf (cfg.extraConfig != { } || cfg.colors != { } || cfg.theme != null || cfg.menuItems != { } || cfg.submenu != { })
+      mkIf (cfg.extraConfig != { } || cfg.menuItems != { } || cfg.submenu != { })
         (
           let
-            colorSettings = filterAttrs (_: v: v != null) {
+            colorSettings = {
               inherit (cfg.colors) foreground;
               inherit (cfg.colors) background;
               selection_foreground = cfg.colors.selectionForeground;
@@ -180,15 +202,18 @@ in
               inherit (cfg.display) centered;
               inherit (cfg.display) width;
               inherit (cfg.display) height;
-            } // optionalAttrs (cfg.theme != null) {
-              theme = cfg.theme;
+              inherit (cfg.display) title;
+              theme = cfg.theme.name;
+              figlet = cfg.figlet.enable;
+              figlet_font = cfg.figlet.font;
+              themes_dir = cfg.theme.dir;
             };
 
             submenuSettings = mapAttrs' (name: items: nameValuePair "submenu.${name}" items) cfg.submenu;
 
             finalSettings =
               cfg.extraConfig
-              // optionalAttrs (colorSettings != { }) {
+              // {
                 colors = (cfg.extraConfig.colors or { }) // colorSettings;
               }
               // {

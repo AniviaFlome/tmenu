@@ -20,7 +20,8 @@ Add to your `home.nix`:
 
   programs.tmenu = {
     enable = true;
-    theme = "catppuccin-mocha";
+    
+    theme.name = "catppuccin-mocha";
 
     display = {
       centered = true;
