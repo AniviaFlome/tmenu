@@ -28,7 +28,7 @@ Add to your `home.nix`:
       title = "Tmenu";
       figlet = {
         enable = true;
-        font = "standart";
+        font = "standard";
       };
       theme = {
         name = "catppuccin-mocha";

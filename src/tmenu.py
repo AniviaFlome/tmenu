@@ -500,12 +500,12 @@ def create_default_config():
 
 
 def load_custom_menus(
-    themes_dir: Optional[str] = None,
+    theme_dir: Optional[str] = None,
 ) -> Tuple[Dict[str, str], Dict[str, Dict[str, str]]]:
     """Load custom menu configurations from specified directory.
 
     Args:
-        themes_dir: Path to themes directory. If None, no custom menus are loaded.
+        theme_dir: Path to theme directory. If None, no custom menus are loaded.
 
     Returns:
         Tuple of (menu_items dict, submenus dict)
@@ -514,21 +514,21 @@ def load_custom_menus(
     submenus = {}
 
     # Return empty if no directory specified
-    if themes_dir is None:
+    if theme_dir is None:
         return menu_items, submenus
 
     # Expand user path
-    themes_dir = os.path.expanduser(themes_dir)
+    theme_dir = os.path.expanduser(theme_dir)
 
     # Return empty if directory doesn't exist
-    if not os.path.exists(themes_dir) or not os.path.isdir(themes_dir):
+    if not os.path.exists(theme_dir) or not os.path.isdir(theme_dir):
         return menu_items, submenus
 
-    # Load all .ini files from themes directory
+    # Load all .ini files from theme directory
     try:
-        for filename in sorted(os.listdir(themes_dir)):
+        for filename in sorted(os.listdir(theme_dir)):
             if filename.endswith(".ini"):
-                menu_path = os.path.join(themes_dir, filename)
+                menu_path = os.path.join(theme_dir, filename)
                 parser = configparser.ConfigParser()
                 try:
                     parser.read(menu_path)
@@ -588,7 +588,9 @@ def load_config(
         parser.read(config_path)
         if "display" in parser and "theme" in parser["display"]:
             theme_name = parser["display"]["theme"]
-            theme_parser = load_theme(theme_name)
+            # Only load theme if name is not empty
+            if theme_name and theme_name.strip():
+                theme_parser = load_theme(theme_name)
 
     # Load theme colors first (can be overridden by config)
     if theme_parser and "colors" in theme_parser:
@@ -641,8 +643,8 @@ def load_config(
                 config["figlet"] = parser["display"].getboolean("figlet")
             if "figlet_font" in parser["display"]:
                 config["figlet_font"] = parser["display"]["figlet_font"]
-            if "themes_dir" in parser["display"]:
-                config["themes_dir"] = parser["display"]["themes_dir"]
+            if "theme_dir" in parser["display"]:
+                config["theme_dir"] = parser["display"]["theme_dir"]
 
         if "menu" in parser:
             for label, command in parser["menu"].items():
@@ -654,9 +656,9 @@ def load_config(
                 submenu_name = section[8:]  # Remove 'submenu.' prefix
                 submenus[submenu_name] = dict(parser[section])
 
-    # Load and merge custom menus if themes_dir is configured
-    themes_dir = config.get("themes_dir")
-    custom_menu_items, custom_submenus = load_custom_menus(themes_dir)
+    # Load and merge custom menus if theme_dir is configured
+    theme_dir = config.get("theme_dir")
+    custom_menu_items, custom_submenus = load_custom_menus(theme_dir)
     menu_items.update(custom_menu_items)
     for submenu_name, submenu_items in custom_submenus.items():
         if submenu_name in submenus:

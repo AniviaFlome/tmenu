@@ -204,7 +204,7 @@ in
               inherit (cfg.display) height;
               inherit (cfg.display) title;
               theme = cfg.display.theme.name;
-              themes_dir = cfg.display.theme.dir;
+              theme_dir = cfg.display.theme.dir;
               figlet = cfg.display.figlet.enable;
               figlet_font = cfg.display.figlet.font;
             };
