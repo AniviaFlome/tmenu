@@ -89,20 +89,6 @@ in
       };
     };
 
-    theme = {
-      name = mkOption {
-        type = types.str;
-        default = "";
-        description = "Predefined theme to use. Leave empty to use manual colors.";
-      };
-
-      dir = mkOption {
-        type = types.str;
-        default = "";
-        description = "Directory path for custom themes.";
-      };
-    };
-
     display = {
       centered = mkOption {
         type = types.bool;
@@ -127,19 +113,33 @@ in
         default = "";
         description = "Menu title to display at the top.";
       };
-    };
 
-    figlet = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Enable ASCII art title with pyfiglet.";
+      theme = {
+        name = mkOption {
+          type = types.str;
+          default = "";
+          description = "Predefined theme to use. Leave empty to use manual colors.";
+        };
+
+        dir = mkOption {
+          type = types.str;
+          default = "";
+          description = "Directory path for custom themes.";
+        };
       };
 
-      font = mkOption {
-        type = types.str;
-        default = "standard";
-        description = "Font to use for figlet (e.g., standard, slant, banner).";
+      figlet = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable ASCII art title with pyfiglet.";
+        };
+
+        font = mkOption {
+          type = types.str;
+          default = "standard";
+          description = "Font to use for figlet (e.g., standard, slant, banner).";
+        };
       };
     };
 
@@ -203,10 +203,10 @@ in
               inherit (cfg.display) width;
               inherit (cfg.display) height;
               inherit (cfg.display) title;
-              theme = cfg.theme.name;
-              figlet = cfg.figlet.enable;
-              figlet_font = cfg.figlet.font;
-              themes_dir = cfg.theme.dir;
+              theme = cfg.display.theme.name;
+              themes_dir = cfg.display.theme.dir;
+              figlet = cfg.display.figlet.enable;
+              figlet_font = cfg.display.figlet.font;
             };
 
             submenuSettings = mapAttrs' (name: items: nameValuePair "submenu.${name}" items) cfg.submenu;

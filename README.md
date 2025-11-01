@@ -20,13 +20,19 @@ Add to your `home.nix`:
 
   programs.tmenu = {
     enable = true;
-    
-    theme.name = "catppuccin-mocha";
 
     display = {
       centered = true;
       width = 60;
       height = 10;
+      title = "Tmenu";
+      figlet = {
+        enable = true;
+        font = "standart";
+      };
+      theme = {
+        name = "catppuccin-mocha";
+      };
     };
 
     menuItems = {
