@@ -37,7 +37,7 @@ in
       description = "The tmenu package to use.";
     };
 
-    settings = mkOption {
+    extraConfig = mkOption {
       inherit (iniFormat) type;
       default = { };
       example = literalExpression ''
@@ -52,8 +52,8 @@ in
         }
       '';
       description = ''
-        Configuration for tmenu.
-        See <link xlink:href="https://github.com/yourusername/tmenu"/> for options.
+        Extra configuration for tmenu in INI format.
+        See <link xlink:href="https://github.com/AniviaFlome/tmenu"/> for options.
       '';
     };
 
@@ -129,11 +129,34 @@ in
           "Terminal" = "alacritty";
           "Browser" = "firefox";
           "Text Editor" = "nvim";
+          "Development" = "submenu:Development";
         }
       '';
       description = ''
         Menu items to display. Keys are labels shown in the menu,
         values are commands to execute when selected.
+        Use "submenu:NAME" to link to a submenu.
+      '';
+    };
+
+    submenus = mkOption {
+      type = types.attrsOf (types.attrsOf types.str);
+      default = { };
+      example = literalExpression ''
+        {
+          Development = {
+            "Code Editor" = "code";
+            "Terminal" = "alacritty --working-directory ~/projects";
+          };
+          System = {
+            "File Manager" = "thunar";
+            "System Monitor" = "htop";
+          };
+        }
+      '';
+      description = ''
+        Submenus for tmenu. Each attribute set becomes a [submenu.NAME] section.
+        Keys are labels, values are commands to execute.
       '';
     };
   };
@@ -142,40 +165,46 @@ in
     home.packages = [ cfg.package ];
 
     xdg.configFile."tmenu/config.ini" =
-      mkIf (cfg.settings != { } || cfg.colors != { } || cfg.theme != null || cfg.menuItems != { })
-        {
-          source =
-            if cfg.theme != null then
-              "${cfg.package}/share/tmenu/themes/${cfg.theme}.ini"
-            else
-              let
-                colorSettings = filterAttrs (_: v: v != null) {
-                  inherit (cfg.colors) foreground;
-                  inherit (cfg.colors) background;
-                  selection_foreground = cfg.colors.selectionForeground;
-                  selection_background = cfg.colors.selectionBackground;
-                  prompt_foreground = cfg.colors.promptForeground;
-                };
+      mkIf (cfg.extraConfig != { } || cfg.colors != { } || cfg.theme != null || cfg.menuItems != { } || cfg.submenus != { })
+        (
+          if cfg.theme != null then
+            {
+              source = "${cfg.package}/themes/${cfg.theme}.ini";
+            }
+          else
+            let
+              colorSettings = filterAttrs (_: v: v != null) {
+                inherit (cfg.colors) foreground;
+                inherit (cfg.colors) background;
+                selection_foreground = cfg.colors.selectionForeground;
+                selection_background = cfg.colors.selectionBackground;
+                prompt_foreground = cfg.colors.promptForeground;
+              };
 
-                displaySettings = {
-                  inherit (cfg.display) centered;
-                  inherit (cfg.display) width;
-                  inherit (cfg.display) height;
-                };
+              displaySettings = {
+                inherit (cfg.display) centered;
+                inherit (cfg.display) width;
+                inherit (cfg.display) height;
+              };
 
-                finalSettings =
-                  cfg.settings
-                  // optionalAttrs (colorSettings != { }) {
-                    colors = (cfg.settings.colors or { }) // colorSettings;
-                  }
-                  // {
-                    display = (cfg.settings.display or { }) // displaySettings;
-                  }
-                  // optionalAttrs (cfg.menuItems != { }) {
-                    menu = cfg.menuItems;
-                  };
-              in
-              iniFormat.generate "tmenu-config.ini" finalSettings;
-        };
+              submenuSettings = mapAttrs' (name: items: nameValuePair "submenu.${name}" items) cfg.submenus;
+
+              finalSettings =
+                cfg.extraConfig
+                // optionalAttrs (colorSettings != { }) {
+                  colors = (cfg.extraConfig.colors or { }) // colorSettings;
+                }
+                // {
+                  display = (cfg.extraConfig.display or { }) // displaySettings;
+                }
+                // optionalAttrs (cfg.menuItems != { }) {
+                  menu = cfg.menuItems;
+                }
+                // submenuSettings;
+            in
+            {
+              source = iniFormat.generate "tmenu-config.ini" finalSettings;
+            }
+        );
   };
 }

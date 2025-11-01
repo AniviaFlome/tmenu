@@ -10,12 +10,6 @@ Vibe coded for personal use. Use it if you want.
 tmenu.url = "github:AniviaFlome/tmenu";
 ```
 
-**Available flake outputs:**
-- `packages.<system>.default` - The tmenu package
-- `apps.<system>.default` - Runnable app (`nix run`)
-- `homeManagerModules.tmenu` - Home Manager module
-- `nixosModules.tmenu` - NixOS module
-
 ### Using Home Manager
 
 Add to your `home.nix`:
@@ -32,38 +26,35 @@ Add to your `home.nix`:
     menuItems = {
       "Terminal" = "alacritty";
       "Browser" = "firefox";
-      "Development" = "submenu:Development";  # Opens submenu
+      "Development" = "submenu:Development";
       "System" = "submenu:System";
     };
 
-    # Display settings (optional)
-    display = {
-      centered = true;  # Center the menu (default)
-      width = 60;       # Menu width
-      height = 10;      # Max visible items
-    };
-
-    # Additional settings
-    settings = {
-      display = {
-        title = "Main Menu";
-      };
-      "submenu.Development" = {
+    # Submenus (first-class option)
+    submenus = {
+      Development = {
         "Code Editor" = "code";
         "Git GUI" = "gitg";
         "Terminal" = "alacritty --working-directory ~/projects";
       };
-      "submenu.System" = {
+      System = {
         "File Manager" = "thunar";
         "System Monitor" = "htop";
         "Task Manager" = "gnome-system-monitor";
       };
     };
+
+    # Display settings
+    display = {
+      centered = true;  # Center the menu (default)
+      width = 60;       # Menu width
+      height = 10;      # Max visible items
+    };
   };
 }
 ```
 
-Or with custom colors:
+With custom colors:
 
 ```nix
 {
@@ -81,6 +72,33 @@ Or with custom colors:
       selectionForeground = "black";
       selectionBackground = "cyan";
       promptForeground = "blue";
+    };
+  };
+}
+```
+
+Advanced configuration with `extraConfig`:
+
+```nix
+{
+  programs.tmenu = {
+    enable = true;
+
+    menuItems = {
+      "Terminal" = "alacritty";
+    };
+
+    submenus.Tools = {
+      "Calculator" = "gnome-calculator";
+    };
+
+    # Extra INI configuration for advanced users
+    extraConfig = {
+      display = {
+        title = "My Custom Menu";
+        figlet = true;
+        figlet_font = "slant";
+      };
     };
   };
 }
