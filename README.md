@@ -56,7 +56,7 @@ Add to your `configuration.nix`:
 
 ```nix
 {
-  imports = [ inputs.tmenu.nixosModules.tmenu ];
+  imports = [ inputs.tmenu.nixosModules.default ];
 
   programs.tmenu.enable = true;
 }
