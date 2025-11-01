@@ -31,7 +31,6 @@ Add to your `home.nix`:
     menuItems = {
       "Terminal" = "alacritty";
       "Browser" = "firefox";
-      "Development" = "submenu:Development";
       "System" = "submenu:System";
     };
 
@@ -42,7 +41,6 @@ Add to your `home.nix`:
     };
   };
 }
-
 ```
 
 ### Using NixOS
