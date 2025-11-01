@@ -1,0 +1,7 @@
+__pycache__/
+venv/
+.vscode/
+result
+result-*
+.DS_Store
+Thumbs.db
