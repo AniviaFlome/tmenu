@@ -36,7 +36,7 @@ python3Packages.buildPythonApplication {
     homepage = "https://github.com/AniviaFlome/tmenu";
     license = licenses.mit0;
     maintainers = [ AniviaFlome ];
-    platforms = platforms.unix;
+    platforms = lib.platforms.all;
     mainProgram = "tmenu";
   };
 }

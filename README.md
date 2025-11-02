@@ -318,7 +318,3 @@ pytest test_tmenu.py::test_filter_items
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-MIT No Attribution License - See LICENSE file for details
