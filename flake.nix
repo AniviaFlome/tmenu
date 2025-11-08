@@ -20,13 +20,13 @@
         "x86_64-darwin"
         "aarch64-darwin"
       ];
-      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f system nixpkgs.legacyPackages.${system});
       treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
     in
     {
       packages = eachSystem (
         _system: pkgs: {
-          default = pkgs.callPackage ./package.nix { };
+          default = pkgs.callPackage ./nix/package.nix { };
         }
       );
 

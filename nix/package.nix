@@ -7,34 +7,45 @@ python3Packages.buildPythonApplication {
   pname = "tmenu";
   version = "0.1.0";
 
-  src = ./..;
+  src = ../.;
 
-  format = "other";
+  pyproject = false;
 
   propagatedBuildInputs = with python3Packages; [
     x256
     pyfiglet
   ];
 
-  installPhase = ''
-    mkdir -p $out/bin
-    mkdir -p $out/themes
+  dontBuild = true;
 
-    # Install the main script
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out/bin
+    mkdir -p $out/bin/themes
+
     cp src/tmenu.py $out/bin/tmenu
     chmod +x $out/bin/tmenu
-
-    # Install default config in same directory as script (script expects it there)
     cp src/config.default.ini $out/bin/
+    cp -r themes/* $out/bin/themes/
 
-    # Install themes in parent directory of bin/ (script looks in ../themes/)
-    cp themes/*.ini $out/themes/
+    runHook postInstall
+  '';
+
+  nativeCheckInputs = with python3Packages; [
+    pytestCheckHook
+  ];
+
+  checkPhase = ''
+    runHook preCheck
+    pytest src/test_tmenu.py
+    runHook postCheck
   '';
 
   meta = with lib; {
-    description = "A dmenu-like command executor for the terminal";
+    description = "dmenu for terminal";
     homepage = "https://github.com/AniviaFlome/tmenu";
-    license = licenses.mit0;
+    license = licenses.mit;
     maintainers = [ AniviaFlome ];
     platforms = lib.platforms.all;
     mainProgram = "tmenu";
