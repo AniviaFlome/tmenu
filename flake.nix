@@ -31,7 +31,7 @@
       apps = eachSystem (pkgs: {
         default = {
           type = "app";
-          program = "${self.packages.${pkgs.system or "x86_64-linux"}.default}/bin/tmenu";
+          program = "${self.packages.${pkgs.system}.default}/bin/tmenu";
         };
       });
 
