@@ -20,24 +20,20 @@
         "x86_64-darwin"
         "aarch64-darwin"
       ];
-      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f system nixpkgs.legacyPackages.${system});
+      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
       treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
     in
     {
-      packages = eachSystem (
-        _system: pkgs: {
-          default = pkgs.callPackage ./nix/package.nix { };
-        }
-      );
+      packages = eachSystem (pkgs: {
+        default = pkgs.callPackage ./nix/package.nix { };
+      });
 
-      apps = eachSystem (
-        system: _pkgs: {
-          default = {
-            type = "app";
-            program = "${self.packages.${system}.default}/bin/tmenu";
-          };
-        }
-      );
+      apps = eachSystem (pkgs: {
+        default = {
+          type = "app";
+          program = "${self.packages.${pkgs.system or "x86_64-linux"}.default}/bin/tmenu";
+        };
+      });
 
       formatter = eachSystem (pkgs: treefmtEval.${pkgs.stdenv.hostPlatform.system}.config.build.wrapper);
       checks = eachSystem (pkgs: {
