@@ -135,7 +135,7 @@ class TMenu:
         # Always center vertically
         items_start_y = max(0, (height - items_height) // 2)
         start_y = max(0, items_start_y - title_height)
-        
+
         if self.centered:
             # Center horizontally as well
             start_x = max(0, (width - menu_width) // 2)
@@ -244,7 +244,9 @@ class TMenu:
             if item_index == self.selected_index:
                 attr = colors["selected"]
                 # Pad with spaces for full-width highlight
-                display_item = " " * text_indent + display_item.ljust(menu_width - text_indent)
+                display_item = " " * text_indent + display_item.ljust(
+                    menu_width - text_indent
+                )
                 item_x = start_x
             else:
                 attr = colors["normal"]
