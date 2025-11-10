@@ -22,12 +22,17 @@ python3Packages.buildPythonApplication {
     runHook preInstall
 
     mkdir -p $out/bin
-    mkdir -p $out/bin/themes
+    mkdir -p $out/share/tmenu/themes
 
+    # Install executable
     cp src/tmenu.py $out/bin/tmenu
     chmod +x $out/bin/tmenu
-    cp src/config.default.ini $out/bin/
-    cp -r themes/* $out/bin/themes/
+
+    # Install default config
+    cp src/config.default.ini $out/share/tmenu/
+
+    # Install themes folder
+    cp -r themes/* $out/share/tmenu/themes/
 
     runHook postInstall
   '';
