@@ -4,7 +4,6 @@ tmenu - A dmenu-like command executor for the terminal using ncurses
 """
 
 import argparse
-import configparser
 import curses
 import os
 import shlex
@@ -12,6 +11,17 @@ import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+# TOML parsing support
+try:
+    import tomllib  # Python 3.11+
+except ImportError:
+    try:
+        import tomli as tomllib  # Fallback for older Python versions
+    except ImportError:
+        print("Error: TOML support requires Python 3.11+ or 'tomli' package", file=sys.stderr)
+        print("Install with: pip install tomli", file=sys.stderr)
+        sys.exit(1)
 
 from x256 import x256
 
@@ -22,6 +32,7 @@ try:
     PYFIGLET_AVAILABLE = True
 except ImportError:
     PYFIGLET_AVAILABLE = False
+
 
 
 class TMenu:
@@ -47,7 +58,7 @@ class TMenu:
             title: Menu title to display
             is_submenu: Whether this is a submenu (shows Back option)
         """
-        self.all_items = sorted(items)
+        self.all_items = list(items)
 
         # Add Back option for submenus and Exit for all menus
         if is_submenu:
@@ -319,7 +330,7 @@ class TMenu:
                     if command.startswith("submenu:"):
                         submenu_name = command[8:]  # Remove 'submenu:' prefix
                         if submenu_name in self.submenus:
-                            # Return signal to enter submenu
+                            # Return signal to enter submenu with label
                             return f"__SUBMENU__{submenu_name}__{selected}"
                     else:
                         # Execute command
@@ -454,31 +465,30 @@ class TMenu:
                 self.selected_index = max(0, len(self.all_items) - 1)
 
 
-def load_theme(theme_name: str) -> Optional[configparser.ConfigParser]:
+def load_theme(theme_name: str) -> Optional[dict]:
     """Load a theme from various locations.
 
     Searches in order:
-    1. ~/.config/tmenu/themes/{theme_name}.ini
-    2. ./themes/{theme_name}.ini (bundled themes)
+    1. ~/.config/tmenu/themes/{theme_name}.toml
+    2. ./themes/{theme_name}.toml (bundled themes)
 
     Returns:
-        ConfigParser object if theme found, None otherwise
+        Dictionary with theme config if theme found, None otherwise
     """
     # Get the parent directory for bundled themes
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
 
     theme_locations = [
-        os.path.expanduser(f"~/.config/tmenu/themes/{theme_name}.ini"),  # User themes
-        os.path.join(parent_dir, "themes", f"{theme_name}.ini"),  # Bundled themes
+        os.path.expanduser(f"~/.config/tmenu/themes/{theme_name}.toml"),  # User themes
+        os.path.join(parent_dir, "themes", f"{theme_name}.toml"),  # Bundled themes
     ]
 
     for theme_path in theme_locations:
         if os.path.exists(theme_path):
-            parser = configparser.ConfigParser()
             try:
-                parser.read(theme_path)
-                return parser
+                with open(theme_path, "rb") as f:
+                    return tomllib.load(f)
             except Exception:
                 continue
 
@@ -488,7 +498,7 @@ def load_theme(theme_name: str) -> Optional[configparser.ConfigParser]:
 def create_default_config():
     """Create default config file in ~/.config/tmenu/ if it doesn't exist."""
     config_dir = os.path.expanduser("~/.config/tmenu")
-    config_file = os.path.join(config_dir, "config.ini")
+    config_file = os.path.join(config_dir, "config.toml")
 
     # Don't create if it already exists
     if os.path.exists(config_file):
@@ -499,7 +509,7 @@ def create_default_config():
 
     # Get path to default config file (in same directory)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_config_path = os.path.join(script_dir, "config.default.ini")
+    default_config_path = os.path.join(script_dir, "config.default.toml")
 
     try:
         # Read default config from file
@@ -538,27 +548,27 @@ def load_custom_menus(
     if not os.path.exists(theme_dir) or not os.path.isdir(theme_dir):
         return menu_items, submenus
 
-    # Load all .ini files from theme directory
+    # Load all .toml files from theme directory
     try:
         for filename in sorted(os.listdir(theme_dir)):
-            if filename.endswith(".ini"):
+            if filename.endswith(".toml"):
                 menu_path = os.path.join(theme_dir, filename)
-                parser = configparser.ConfigParser()
                 try:
-                    parser.read(menu_path)
+                    with open(menu_path, "rb") as f:
+                        data = tomllib.load(f)
 
                     # Load menu items
-                    if "menu" in parser:
-                        for label, command in parser["menu"].items():
+                    if "menu" in data:
+                        for label, command in data["menu"].items():
                             menu_items[label] = command
 
-                    # Load submenus
-                    for section in parser.sections():
-                        if section.startswith("submenu."):
-                            submenu_name = section[8:]  # Remove 'submenu.' prefix
+                    # Load submenus (keys starting with "submenu.")
+                    for section_name, section_data in data.items():
+                        if section_name.startswith("submenu."):
+                            submenu_name = section_name[8:]  # Remove 'submenu.' prefix
                             if submenu_name not in submenus:
                                 submenus[submenu_name] = {}
-                            submenus[submenu_name].update(dict(parser[section]))
+                            submenus[submenu_name].update(section_data)
                 except Exception:
                     continue  # Skip invalid files
     except Exception:
@@ -582,7 +592,7 @@ def load_config(
     if config_path is None:
         # Try default locations
         config_locations = [
-            os.path.expanduser("~/.config/tmenu/config.ini"),
+            os.path.expanduser("~/.config/tmenu/config.toml"),
         ]
         for loc in config_locations:
             if os.path.exists(loc):
@@ -594,39 +604,49 @@ def load_config(
     submenus = {}
     title = ""
 
-    parser = configparser.ConfigParser()
+    data = None
 
-    # First, check if config specifies a theme
-    theme_parser = None
+    # Load config file
     if config_path and os.path.exists(config_path):
-        parser.read(config_path)
-        if "display" in parser and "theme" in parser["display"]:
-            theme_name = parser["display"]["theme"]
-            # Only load theme if name is not empty
-            if theme_name and theme_name.strip():
-                theme_parser = load_theme(theme_name)
+        try:
+            with open(config_path, "rb") as f:
+                data = tomllib.load(f)
+        except Exception:
+            pass  # Silently fail if config can't be loaded
+
+    # First, check if config specifies a theme and load it
+    theme_data = None
+    if data and "display" in data and "theme" in data["display"]:
+        theme_name = data["display"]["theme"]
+        # Only load theme if name is not empty
+        if theme_name and theme_name.strip():
+            theme_data = load_theme(theme_name)
 
     # Load theme colors first (can be overridden by config)
-    if theme_parser and "colors" in theme_parser:
-        for key, value in theme_parser["colors"].items():
-            value = value.strip()
-            # Check if it's a hex color
-            if value.startswith("#") or (
-                len(value) == 6 and all(c in "0123456789abcdefABCDEF" for c in value)
-            ):
-                # Use x256 library to convert hex to xterm-256
-                hex_color = value.lstrip("#").lower()
-                config[key] = x256.from_hex(hex_color)
-            else:
-                # Numeric value or special (-1 for transparent)
-                try:
-                    config[key] = int(value)
-                except ValueError:
-                    config[key] = -1
+    if theme_data and "colors" in theme_data:
+        for key, value in theme_data["colors"].items():
+            # Handle hex colors
+            if isinstance(value, str):
+                value = value.strip()
+                # Check if it's a hex color
+                if value.startswith("#") or (
+                    len(value) == 6 and all(c in "0123456789abcdefABCDEF" for c in value)
+                ):
+                    # Use x256 library to convert hex to xterm-256
+                    hex_color = value.lstrip("#").lower()
+                    config[key] = x256.from_hex(hex_color)
+                else:
+                    # Try numeric value
+                    try:
+                        config[key] = int(value)
+                    except ValueError:
+                        config[key] = -1
+            elif isinstance(value, int):
+                config[key] = value
 
     # Now load config (overrides theme)
-    if config_path and os.path.exists(config_path):
-        if "colors" in parser:
+    if data:
+        if "colors" in data:
             color_map = {
                 "black": 0,
                 "red": 1,
@@ -638,37 +658,41 @@ def load_config(
                 "white": 7,
             }
 
-            for key, value in parser["colors"].items():
-                try:
-                    config[key] = int(value)
-                except ValueError:
-                    config[key] = color_map.get(value.lower(), -1)
+            for key, value in data["colors"].items():
+                if isinstance(value, int):
+                    config[key] = value
+                elif isinstance(value, str):
+                    try:
+                        config[key] = int(value)
+                    except ValueError:
+                        config[key] = color_map.get(value.lower(), -1)
 
-        if "display" in parser:
-            if "centered" in parser["display"]:
-                config["centered"] = parser["display"].getboolean("centered")
-            if "width" in parser["display"]:
-                config["width"] = int(parser["display"]["width"])
-            if "height" in parser["display"]:
-                config["height"] = int(parser["display"]["height"])
-            if "title" in parser["display"]:
-                title = parser["display"]["title"]
-            if "figlet" in parser["display"]:
-                config["figlet"] = parser["display"].getboolean("figlet")
-            if "figlet_font" in parser["display"]:
-                config["figlet_font"] = parser["display"]["figlet_font"]
-            if "theme_dir" in parser["display"]:
-                config["theme_dir"] = parser["display"]["theme_dir"]
+        if "display" in data:
+            display = data["display"]
+            if "centered" in display:
+                config["centered"] = bool(display["centered"])
+            if "width" in display:
+                config["width"] = int(display["width"])
+            if "height" in display:
+                config["height"] = int(display["height"])
+            if "title" in display:
+                title = str(display["title"])
+            if "figlet" in display:
+                config["figlet"] = bool(display["figlet"])
+            if "figlet_font" in display:
+                config["figlet_font"] = str(display["figlet_font"])
+            if "theme_dir" in display:
+                config["theme_dir"] = str(display["theme_dir"])
 
-        if "menu" in parser:
-            for label, command in parser["menu"].items():
+        if "menu" in data:
+            for label, command in data["menu"].items():
                 menu_items[label] = command
 
         # Load submenus (sections like [submenu.Development])
-        for section in parser.sections():
-            if section.startswith("submenu."):
-                submenu_name = section[8:]  # Remove 'submenu.' prefix
-                submenus[submenu_name] = dict(parser[section])
+        for section_name, section_data in data.items():
+            if section_name.startswith("submenu."):
+                submenu_name = section_name[8:]  # Remove 'submenu.' prefix
+                submenus[submenu_name] = dict(section_data)
 
     # Load and merge custom menus if theme_dir is configured
     theme_dir = config.get("theme_dir")
@@ -733,10 +757,10 @@ def main():
                 menu_stack.pop()
                 if menu_stack:
                     # Return to submenu
-                    submenu_name = menu_stack[-1]
+                    submenu_name, submenu_label = menu_stack[-1]
                     current_items = list(submenus[submenu_name].keys())
                     current_menu_items = submenus[submenu_name]
-                    current_title = title
+                    current_title = submenu_label
                 else:
                     # Return to main menu
                     current_items = list(menu_items.keys())
@@ -747,10 +771,11 @@ def main():
             # Enter submenu
             parts = selection.split("__")
             submenu_name = parts[2]
-            menu_stack.append(submenu_name)
+            submenu_label = parts[3] if len(parts) > 3 else submenu_name
+            menu_stack.append((submenu_name, submenu_label))
             current_items = list(submenus[submenu_name].keys())
             current_menu_items = submenus[submenu_name]
-            current_title = title
+            current_title = submenu_label
             continue
         elif selection:
             # Execute the command

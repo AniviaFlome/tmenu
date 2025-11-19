@@ -14,6 +14,7 @@ python3Packages.buildPythonApplication {
   propagatedBuildInputs = with python3Packages; [
     x256
     pyfiglet
+    tomli  # TOML parsing for Python < 3.11
   ];
 
   dontBuild = true;
@@ -22,17 +23,19 @@ python3Packages.buildPythonApplication {
     runHook preInstall
 
     mkdir -p $out/bin
-    mkdir -p $out/share/tmenu/themes
+    mkdir -p $out/share/tmenu
 
     # Install executable
     cp src/tmenu.py $out/bin/tmenu
     chmod +x $out/bin/tmenu
 
-    # Install default config
-    cp src/config.default.ini $out/share/tmenu/
+    # Install default config (TOML format)
+    cp src/config.default.toml $out/share/tmenu/
 
-    # Install themes folder
-    cp -r themes/* $out/share/tmenu/themes/
+    # Install themes folder - same directory level as bin for relative path resolution
+    # Python code looks for ../themes/ relative to the script
+    mkdir -p $out/themes
+    cp -r themes/*.toml $out/themes/
 
     runHook postInstall
   '';

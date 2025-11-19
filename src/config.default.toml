@@ -1,0 +1,23 @@
+[display]
+# Display configuration
+centered = true
+width = 60
+height = 10
+title = "Main Menu"
+
+# Available: catppuccin-mocha, gruvbox-dark, dracula, nord, solarized-dark, solarized-light, tokyo-night, onedark, monokai, rose-pine
+theme = "catppuccin-mocha"
+
+# Custom menus directory (optional)
+# themes_dir = "./themes"
+
+# ASCII art title with pyfiglet (requires: pip install pyfiglet)
+figlet = false
+figlet_font = "standard"
+
+[menu]
+# Format: Label = command
+# Use submenu:NAME to create a submenu
+Terminal = "alacritty"
+Browser = "firefox"
+Editor = "nvim"

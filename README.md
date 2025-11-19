@@ -97,7 +97,7 @@ tmenu
 
 tmenu will:
 
-1. Load menu items from your config file (`~/.config/tmenu/config.ini`)
+1. Load menu items from your config file (`~/.config/tmenu/config.toml`)
 2. Display them in a centered menu with your custom title
 3. Allow navigation into submenus
 4. Execute the selected command
@@ -112,7 +112,7 @@ tmenu will:
 Specify a custom config file:
 
 ```bash
-tmenu -c ~/.config/tmenu/custom.ini
+tmenu -c ~/.config/tmenu/custom.toml
 ```
 
 ## Keyboard Shortcuts
@@ -164,9 +164,9 @@ tmenu -c ~/.config/tmenu/custom.ini
 
 ## Configuration
 
-Configuration is stored in INI format. tmenu looks for configuration in:
+Configuration is stored in TOML format. tmenu looks for configuration in:
 
-1. `~/.config/tmenu/config.ini`
+1. `~/.config/tmenu/config.toml`
 
 Or specify with `-c` flag.
 
@@ -191,23 +191,23 @@ Or specify with `-c` flag.
   - Note: Only needed if you want to override theme colors or not use a theme
 
 - **`[menu]`** - Main menu items
-  - Format: `Label = command`
+  - Format: `Label = "command"`
   - Use `submenu:NAME` to create a submenu entry
   - Commands are executed when selected
-  - Supports commands with arguments (e.g., `Editor = nvim ~/notes.md`)
+  - Supports commands with arguments (e.g., `Editor = "nvim ~/notes.md"`)
 
 - **`[submenu.NAME]`** - Submenu definitions
   - Create sections named `[submenu.NAME]` for each submenu
-  - Same format as main menu: `Label = command`
+  - Same format as main menu: `Label = "command"`
   - Can be nested by using `submenu:` in submenu items
 
 ## Themes
 
 tmenu includes many built-in themes that you can use by setting `theme` in your config:
 
-```ini
+```toml
 [display]
-theme = nord
+theme = "nord"
 ```
 
 ### Custom Themes
@@ -218,22 +218,22 @@ Create your own themes in `~/.config/tmenu/themes/`:
 mkdir -p ~/.config/tmenu/themes
 ```
 
-Create `~/.config/tmenu/themes/mytheme.ini`:
+Create `~/.config/tmenu/themes/mytheme.toml`:
 
-```ini
+```toml
 [colors]
-foreground = white
+foreground = "white"
 background = -1
-selection_foreground = black
-selection_background = cyan
-prompt_foreground = blue
+selection_foreground = "black"
+selection_background = "cyan"
+prompt_foreground = "blue"
 ```
 
 Then use it:
 
-```ini
+```toml
 [display]
-theme = mytheme
+theme = "mytheme"
 ```
 
 **Note:** Themes only contain colors. Display settings (centered, width, height, title) stay in your main config.
@@ -245,24 +245,24 @@ Themes are located in:
 
 ### First Run
 
-On first run, tmenu automatically creates `~/.config/tmenu/config.ini` with default settings if it doesn't exist.
+On first run, tmenu automatically creates `~/.config/tmenu/config.toml` with default settings if it doesn't exist.
 
 ### Custom Menu Imports
 
-You can add additional menu items without editing your main `config.ini` by creating custom menu files.
+You can add additional menu items without editing your main `config.toml` by creating custom menu files.
 
-**1. Enable custom themes in your config.ini:**
+**1. Enable custom themes in your config.toml:**
 
-```ini
+```toml
 [display]
 # Relative path (relative to ~/.config/tmenu/)
-themes_dir = themes
+themes_dir = "menus"
 
 # Current directory
-# themes_dir = ./themes
+# themes_dir = "./menus"
 
 # Absolute paths also work
-# themes_dir = ~/.local/share/tmenu/themes
+# themes_dir = "~/.local/share/tmenu/menus"
 ```
 
 ## Development

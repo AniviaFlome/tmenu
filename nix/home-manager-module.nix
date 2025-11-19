@@ -10,7 +10,7 @@ with lib;
 let
   cfg = config.programs.tmenu;
 
-  iniFormat = pkgs.formats.ini { };
+  tomlFormat = pkgs.formats.toml { };
 
   colorType = types.either types.int (
     types.enum [
@@ -37,8 +37,43 @@ in
       description = "The tmenu package to use.";
     };
 
+    settings = mkOption {
+      type = tomlFormat.type;
+      default = { };
+      example = literalExpression ''
+        {
+          display = {
+            centered = true;
+            width = 60;
+            height = 10;
+            title = "Main Menu";
+            theme = "catppuccin-mocha";
+            figlet = false;
+            figlet_font = "standard";
+          };
+          menu = {
+            Terminal = "alacritty";
+            Browser = "firefox";
+            Editor = "nvim";
+            Applications = "submenu:Applications";
+          };
+          submenu.Applications = {
+            Browser = "firefox";
+            Editor = "nvim";
+            "File Manager" = "thunar";
+          };
+        }
+      '';
+      description = ''
+        Configuration for tmenu in TOML format.
+        This uses a freeform type allowing any valid TOML structure.
+        See <link xlink:href="https://github.com/AniviaFlome/tmenu"/> for available options.
+      '';
+    };
+
+    # Legacy structured options for backward compatibility
     extraConfig = mkOption {
-      inherit (iniFormat) type;
+      inherit (tomlFormat) type;
       default = { };
       example = literalExpression ''
         {
@@ -52,7 +87,8 @@ in
         }
       '';
       description = ''
-        Extra configuration for tmenu in INI format.
+        Extra configuration for tmenu in TOML format.
+        This is merged with 'settings'. Use 'settings' for the main configuration.
         See <link xlink:href="https://github.com/AniviaFlome/tmenu"/> for options.
       '';
     };
@@ -186,10 +222,11 @@ in
   config = mkIf cfg.enable {
     home.packages = [ cfg.package ];
 
-    xdg.configFile."tmenu/config.ini" =
-      mkIf (cfg.extraConfig != { } || cfg.menuItems != { } || cfg.submenu != { })
+    xdg.configFile."tmenu/config.toml" =
+      mkIf (cfg.settings != { } || cfg.extraConfig != { } || cfg.menuItems != { } || cfg.submenu != { })
         (
           let
+            # Build config from structured options
             colorSettings = {
               inherit (cfg.colors) foreground;
               inherit (cfg.colors) background;
@@ -211,21 +248,26 @@ in
 
             submenuSettings = mapAttrs' (name: items: nameValuePair "submenu.${name}" items) cfg.submenu;
 
+            # Merge settings: settings takes priority, then extraConfig, then structured options
             finalSettings =
-              cfg.extraConfig
-              // optionalAttrs (cfg.display.theme.name == "") {
-                colors = (cfg.extraConfig.colors or { }) // colorSettings;
-              }
+              # Start with structured options (lowest priority)
+              (optionalAttrs (cfg.display.theme.name == "") {
+                colors = colorSettings;
+              })
               // {
-                display = (cfg.extraConfig.display or { }) // displaySettings;
+                display = displaySettings;
               }
               // optionalAttrs (cfg.menuItems != { }) {
                 menu = cfg.menuItems;
               }
-              // submenuSettings;
+              // submenuSettings
+              # Then overlay extraConfig
+              // cfg.extraConfig
+              # Finally overlay settings (highest priority)
+              // cfg.settings;
           in
           {
-            source = iniFormat.generate "tmenu-config.ini" finalSettings;
+            source = tomlFormat.generate "tmenu-config.toml" finalSettings;
           }
         );
   };

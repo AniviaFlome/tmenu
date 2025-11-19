@@ -1,0 +1,6 @@
+[colors]
+foreground = "#cdd6f4"
+background = -1
+selection_foreground = "#1e1e2e"
+selection_background = "#cba6f7"
+prompt_foreground = "#cba6f7"
