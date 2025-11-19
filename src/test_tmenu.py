@@ -40,14 +40,14 @@ class TestTMenu:
         assert "← Back" in menu.all_items
         assert "Exit" in menu.all_items
 
-    def test_sorting(self):
-        """Test that items are sorted."""
+    def test_order_preservation(self):
+        """Test that items preserve original order (not sorted)."""
         items = ["zebra", "apple", "monkey", "banana"]
         menu = TMenu(items)
 
-        # Check that the initial items are in sorted order (before Exit is added)
+        # Check that the initial items preserve original order (before Exit is added)
         all_items_without_exit = [item for item in menu.all_items if item != "Exit"]
-        assert all_items_without_exit == ["apple", "banana", "monkey", "zebra"]
+        assert all_items_without_exit == ["zebra", "apple", "monkey", "banana"]
 
 
 class TestLoadConfig:
@@ -56,7 +56,7 @@ class TestLoadConfig:
     def test_load_config_nonexistent_file(self):
         """Test loading config from nonexistent file."""
         config, menu_items, submenus, title = load_config(
-            "/nonexistent/path/config.ini"
+            "/nonexistent/path/config.toml"
         )
         assert isinstance(config, dict)
         assert isinstance(menu_items, dict)
@@ -64,12 +64,12 @@ class TestLoadConfig:
 
     def test_load_config_color_names(self, tmp_path):
         """Test loading config with color names."""
-        config_file = tmp_path / "config.ini"
+        config_file = tmp_path / "config.toml"
         config_file.write_text(
             """
 [colors]
-foreground = white
-background = black
+foreground = "white"
+background = "black"
 """
         )
 
@@ -79,7 +79,7 @@ background = black
 
     def test_load_config_color_numbers(self, tmp_path):
         """Test loading config with color numbers."""
-        config_file = tmp_path / "config.ini"
+        config_file = tmp_path / "config.toml"
         config_file.write_text(
             """
 [colors]
@@ -96,11 +96,11 @@ selection_background = 6
 
     def test_load_config_invalid_color(self, tmp_path):
         """Test loading config with invalid color name."""
-        config_file = tmp_path / "config.ini"
+        config_file = tmp_path / "config.toml"
         config_file.write_text(
             """
 [colors]
-foreground = invalid_color
+foreground = "invalid_color"
 """
         )
 
@@ -113,12 +113,12 @@ class TestIntegration:
 
     def test_menu_with_config(self, tmp_path):
         """Test creating menu with config."""
-        config_file = tmp_path / "config.ini"
+        config_file = tmp_path / "config.toml"
         config_file.write_text(
             """
 [colors]
-foreground = cyan
-background = black
+foreground = "cyan"
+background = "black"
 """
         )
 

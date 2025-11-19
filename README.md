@@ -21,30 +21,29 @@ Add to your `home.nix`:
   programs.tmenu = {
     enable = true;
 
-    display = {
-      centered = true;
-      width = 60;
-      height = 10;
-      title = "Tmenu";
-      figlet = {
-        enable = true;
-        font = "standard";
+    # All configuration auto-generated from TOML structure
+    settings = {
+      display = {
+        centered = true;
+        width = 60;
+        height = 10;
+        title = "Tmenu";
+        theme = "catppuccin-mocha";
+        figlet = false;
+        figlet_font = "standard";
       };
-      theme = {
-        name = "catppuccin-mocha";
+      
+      menu = {
+        Terminal = "alacritty";
+        Browser = "firefox";
+        System = "submenu:System";
       };
-    };
-
-    menuItems = {
-      "Terminal" = "alacritty";
-      "Browser" = "firefox";
-      "System" = "submenu:System";
-    };
-
-    submenu.System = {
-      "File Manager" = "thunar";
-      "System Monitor" = "htop";
-      "Task Manager" = "gnome-system-monitor";
+      
+      "submenu.System" = {
+        "File Manager" = "thunar";
+        "System Monitor" = "htop";
+        "Task Manager" = "gnome-system-monitor";
+      };
     };
   };
 }
