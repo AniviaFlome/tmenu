@@ -4,15 +4,21 @@ Vibe coded for personal use. Use it if you want.
 
 ## Installation
 
-### Using Nix Flakes
+tmenu is packaged as a standard Python package with `pyproject.toml`. The source code is organized as a Python package in `src/tmenu/` (this is the standard Python packaging structure, not a monorepo).
 
+### Option 1: Using Nix Flakes (Recommended for NixOS users)
+
+Add to your flake inputs:
+
+```nix
+{
+  inputs.tmenu.url = "github:AniviaFlome/tmenu";
+}
 ```
-tmenu.url = "github:AniviaFlome/tmenu";
-```
 
-### Using Home Manager
+Then either:
 
-Add to your `home.nix`:
+**A. Using Home Manager** (recommended):
 
 ```nix
 {
@@ -20,8 +26,7 @@ Add to your `home.nix`:
 
   programs.tmenu = {
     enable = true;
-
-    # All configuration auto-generated from TOML structure
+    
     settings = {
       display = {
         centered = true;
@@ -30,7 +35,6 @@ Add to your `home.nix`:
         title = "Tmenu";
         theme = "catppuccin-mocha";
         figlet = false;
-        figlet_font = "standard";
       };
       
       menu = {
@@ -42,47 +46,82 @@ Add to your `home.nix`:
       "submenu.System" = {
         "File Manager" = "thunar";
         "System Monitor" = "htop";
-        "Task Manager" = "gnome-system-monitor";
       };
     };
   };
 }
 ```
 
-### Using NixOS
-
-Add to your `configuration.nix`:
+**B. Using NixOS** (system-wide):
 
 ```nix
 {
   imports = [ inputs.tmenu.nixosModules.default ];
-
   programs.tmenu.enable = true;
 }
 ```
 
-### Manual Installation
+**C. Direct installation in home.packages**:
+
+```nix
+{
+  home.packages = [ inputs.tmenu.packages.${system}.default ];
+}
+```
+
+### Option 2: Using pip (works anywhere)
+
+```bash
+# Install from source
+git clone https://github.com/AniviaFlome/tmenu
+cd tmenu
+pip install .
+
+# Or install in development mode (editable)
+pip install -e .
+
+# Run tmenu
+tmenu
+```
+
+**Dependencies** (automatically installed by pip):
+- x256
+- pyfiglet
+- tomli (for Python < 3.11)
+
+### Option 3: Manual Installation (no installation)
 
 ```bash
 # Clone the repository
 git clone https://github.com/AniviaFlome/tmenu
 cd tmenu
 
-# Run tmenu
-python src/tmenu.py
+# Install dependencies manually
+pip install x256 pyfiglet tomli
 
-# Or make it executable
-chmod +x src/tmenu.py
-./src/tmenu.py
+# Run directly
+python -m src.tmenu
 
 # Or copy to your PATH
-cp src/tmenu.py ~/.local/bin/tmenu
+cp -r src/tmenu ~/.local/lib/python3.*/site-packages/
+# Create wrapper script
+echo '#!/usr/bin/env python3
+import tmenu
+tmenu.main()' > ~/.local/bin/tmenu
+chmod +x ~/.local/bin/tmenu
 ```
 
-### Dependencies
+### Where Configuration is Stored
 
-x256
-pyfiglet (optional)
+tmenu follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html):
+
+- **Config**: `$XDG_CONFIG_HOME/tmenu/` (defaults to `~/.config/tmenu/`)
+- **User themes**: `$XDG_CONFIG_HOME/tmenu/themes/`
+- **User data**: `$XDG_DATA_HOME/tmenu/` (defaults to `~/.local/share/tmenu/`)
+- **System themes** (when installed via Nix): `/nix/store/.../share/tmenu/themes/`
+
+You can override these paths by setting the `XDG_CONFIG_HOME` and `XDG_DATA_HOME` environment variables.
+
 
 ## Usage
 
@@ -96,7 +135,7 @@ tmenu
 
 tmenu will:
 
-1. Load menu items from your config file (`~/.config/tmenu/config.toml`)
+1. Load menu items from your config file (`$XDG_CONFIG_HOME/tmenu/config.toml`, defaults to `~/.config/tmenu/config.toml`)
 2. Display them in a centered menu with your custom title
 3. Allow navigation into submenus
 4. Execute the selected command
@@ -165,7 +204,7 @@ tmenu -c ~/.config/tmenu/custom.toml
 
 Configuration is stored in TOML format. tmenu looks for configuration in:
 
-1. `~/.config/tmenu/config.toml`
+1. `$XDG_CONFIG_HOME/tmenu/config.toml` (defaults to `~/.config/tmenu/config.toml`)
 
 Or specify with `-c` flag.
 
@@ -211,13 +250,13 @@ theme = "nord"
 
 ### Custom Themes
 
-Create your own themes in `~/.config/tmenu/themes/`:
+Create your own themes in `$XDG_CONFIG_HOME/tmenu/themes/` (defaults to `~/.config/tmenu/themes/`):
 
 ```bash
-mkdir -p ~/.config/tmenu/themes
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}"/tmenu/themes
 ```
 
-Create `~/.config/tmenu/themes/mytheme.toml`:
+Create `$XDG_CONFIG_HOME/tmenu/themes/mytheme.toml`:
 
 ```toml
 [colors]
@@ -239,12 +278,13 @@ theme = "mytheme"
 
 Themes are located in:
 
-1. `~/.config/tmenu/themes/` (user themes - highest priority)
-2. `./themes/` (bundled themes)
+1. `$XDG_CONFIG_HOME/tmenu/themes/` (user themes - highest priority)
+2. `$XDG_DATA_HOME/tmenu/themes/` (user data themes)
+3. System data directories from `$XDG_DATA_DIRS` (bundled themes when installed)
 
 ### First Run
 
-On first run, tmenu automatically creates `~/.config/tmenu/config.toml` with default settings if it doesn't exist.
+On first run, tmenu automatically creates `$XDG_CONFIG_HOME/tmenu/config.toml` (defaults to `~/.config/tmenu/config.toml`) with default settings if it doesn't exist.
 
 ### Custom Menu Imports
 
@@ -254,11 +294,8 @@ You can add additional menu items without editing your main `config.toml` by cre
 
 ```toml
 [display]
-# Relative path (relative to ~/.config/tmenu/)
+# Relative path (relative to $XDG_CONFIG_HOME/tmenu/)
 themes_dir = "menus"
-
-# Current directory
-# themes_dir = "./menus"
 
 # Absolute paths also work
 # themes_dir = "~/.local/share/tmenu/menus"

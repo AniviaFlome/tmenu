@@ -9,46 +9,24 @@ python3Packages.buildPythonApplication {
 
   src = ../.;
 
-  pyproject = false;
+  pyproject = true;
+
+  build-system = with python3Packages; [
+    setuptools
+    wheel
+  ];
 
   propagatedBuildInputs = with python3Packages; [
     x256
     pyfiglet
-    tomli  # TOML parsing for Python < 3.11
+    tomli
   ];
-
-  dontBuild = true;
-
-  installPhase = ''
-    runHook preInstall
-
-    mkdir -p $out/bin
-    mkdir -p $out/share/tmenu
-
-    # Install executable
-    cp src/tmenu.py $out/bin/tmenu
-    chmod +x $out/bin/tmenu
-
-    # Install default config (TOML format)
-    cp src/config.default.toml $out/share/tmenu/
-
-    # Install themes folder - same directory level as bin for relative path resolution
-    # Python code looks for ../themes/ relative to the script
-    mkdir -p $out/themes
-    cp -r themes/*.toml $out/themes/
-
-    runHook postInstall
-  '';
 
   nativeCheckInputs = with python3Packages; [
     pytestCheckHook
   ];
 
-  checkPhase = ''
-    runHook preCheck
-    pytest src/test_tmenu.py
-    runHook postCheck
-  '';
+  pythonImportsCheck = [ "tmenu" ];
 
   meta = with lib; {
     description = "dmenu for terminal";

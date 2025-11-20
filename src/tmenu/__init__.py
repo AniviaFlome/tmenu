@@ -34,6 +34,16 @@ except ImportError:
     PYFIGLET_AVAILABLE = False
 
 
+def get_xdg_config_home() -> str:
+    """Get XDG config directory, defaulting to ~/.config if not set."""
+    return os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+
+
+def get_xdg_data_home() -> str:
+    """Get XDG data directory, defaulting to ~/.local/share if not set."""
+    return os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+
+
 
 class TMenu:
     """Terminal menu for selecting and executing commands."""
@@ -469,20 +479,31 @@ def load_theme(theme_name: str) -> Optional[dict]:
     """Load a theme from various locations.
 
     Searches in order:
-    1. ~/.config/tmenu/themes/{theme_name}.toml
-    2. ./themes/{theme_name}.toml (bundled themes)
+    1. $XDG_CONFIG_HOME/tmenu/themes/{theme_name}.toml (user config themes)
+    2. $XDG_DATA_HOME/tmenu/themes/{theme_name}.toml (user data themes)
+    3. System data directories from $XDG_DATA_DIRS (e.g., /usr/share, /nix/store/.../share)
+    4. ./themes/{theme_name}.toml (development fallback - relative to script parent)
 
     Returns:
         Dictionary with theme config if theme found, None otherwise
     """
-    # Get the parent directory for bundled themes
+    theme_locations = [
+        # User config directory
+        os.path.join(get_xdg_config_home(), "tmenu", "themes", f"{theme_name}.toml"),
+        # User data directory
+        os.path.join(get_xdg_data_home(), "tmenu", "themes", f"{theme_name}.toml"),
+    ]
+
+    # Add system data directories from XDG_DATA_DIRS
+    xdg_data_dirs = os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share')
+    for data_dir in xdg_data_dirs.split(':'):
+        if data_dir:
+            theme_locations.append(os.path.join(data_dir, "tmenu", "themes", f"{theme_name}.toml"))
+
+    # Development fallback - relative to script location
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
-
-    theme_locations = [
-        os.path.expanduser(f"~/.config/tmenu/themes/{theme_name}.toml"),  # User themes
-        os.path.join(parent_dir, "themes", f"{theme_name}.toml"),  # Bundled themes
-    ]
+    theme_locations.append(os.path.join(parent_dir, "themes", f"{theme_name}.toml"))
 
     for theme_path in theme_locations:
         if os.path.exists(theme_path):
@@ -496,8 +517,8 @@ def load_theme(theme_name: str) -> Optional[dict]:
 
 
 def create_default_config():
-    """Create default config file in ~/.config/tmenu/ if it doesn't exist."""
-    config_dir = os.path.expanduser("~/.config/tmenu")
+    """Create default config file in $XDG_CONFIG_HOME/tmenu/ if it doesn't exist."""
+    config_dir = os.path.join(get_xdg_config_home(), "tmenu")
     config_file = os.path.join(config_dir, "config.toml")
 
     # Don't create if it already exists
@@ -592,7 +613,7 @@ def load_config(
     if config_path is None:
         # Try default locations
         config_locations = [
-            os.path.expanduser("~/.config/tmenu/config.toml"),
+            os.path.join(get_xdg_config_home(), "tmenu", "config.toml"),
         ]
         for loc in config_locations:
             if os.path.exists(loc):
@@ -721,7 +742,7 @@ def main():
     if not menu_items:
         print("Error: No menu items found in configuration.", file=sys.stderr)
         print(
-            "Please create a config file at ~/.config/tmenu/config.ini", file=sys.stderr
+            f"Please create a config file at {get_xdg_config_home()}/tmenu/config.toml", file=sys.stderr
         )
         print("with a [menu] section defining your menu items.", file=sys.stderr)
         sys.exit(1)

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tmenu"
+version = "0.1.0"
+description = "dmenu for terminal"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "AniviaFlome"}]
+requires-python = ">=3.8"
+dependencies = [
+    "x256",
+    "pyfiglet",
+    "tomli; python_version < '3.11'",
+]
+
+[project.scripts]
+tmenu = "tmenu:main"
+
+[project.urls]
+Homepage = "https://github.com/AniviaFlome/tmenu"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+
+[tool.setuptools.package-data]
+tmenu = ["config.default.toml", "themes/*.toml"]
