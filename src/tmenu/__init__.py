@@ -19,7 +19,10 @@ except ImportError:
     try:
         import tomli as tomllib  # Fallback for older Python versions
     except ImportError:
-        print("Error: TOML support requires Python 3.11+ or 'tomli' package", file=sys.stderr)
+        print(
+            "Error: TOML support requires Python 3.11+ or 'tomli' package",
+            file=sys.stderr,
+        )
         print("Install with: pip install tomli", file=sys.stderr)
         sys.exit(1)
 
@@ -33,9 +36,11 @@ try:
 except ImportError:
     PYFIGLET_AVAILABLE = False
 
+
 def get_xdg_config_home() -> str:
     """Get XDG config directory, defaulting to ~/.config if not set."""
-    return os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+    return os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+
 
 class TMenu:
     """Terminal menu for selecting and executing commands."""
@@ -490,10 +495,12 @@ def load_theme(theme_name: str) -> Optional[dict]:
     theme_locations.append(package_themes)
 
     # Add system data directories from XDG_DATA_DIRS
-    xdg_data_dirs = os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share')
-    for data_dir in xdg_data_dirs.split(':'):
+    xdg_data_dirs = os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share")
+    for data_dir in xdg_data_dirs.split(":"):
         if data_dir:
-            theme_locations.append(os.path.join(data_dir, "tmenu", "themes", f"{theme_name}.toml"))
+            theme_locations.append(
+                os.path.join(data_dir, "tmenu", "themes", f"{theme_name}.toml")
+            )
 
     # Development fallback - relative to script parent location
     parent_dir = os.path.dirname(script_dir)
@@ -645,7 +652,8 @@ def load_config(
                 value = value.strip()
                 # Check if it's a hex color
                 if value.startswith("#") or (
-                    len(value) == 6 and all(c in "0123456789abcdefABCDEF" for c in value)
+                    len(value) == 6
+                    and all(c in "0123456789abcdefABCDEF" for c in value)
                 ):
                     # Use x256 library to convert hex to xterm-256
                     hex_color = value.lstrip("#").lower()
@@ -736,7 +744,8 @@ def main():
     if not menu_items:
         print("Error: No menu items found in configuration.", file=sys.stderr)
         print(
-            f"Please create a config file at {get_xdg_config_home()}/tmenu/config.toml", file=sys.stderr
+            f"Please create a config file at {get_xdg_config_home()}/tmenu/config.toml",
+            file=sys.stderr,
         )
         print("with a [menu] section defining your menu items.", file=sys.stderr)
         sys.exit(1)

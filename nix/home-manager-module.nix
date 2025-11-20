@@ -23,7 +23,7 @@ in
     };
 
     settings = mkOption {
-      type = tomlFormat.type;
+      inherit (tomlFormat) type;
       default = { };
       example = literalExpression ''
         {
@@ -50,7 +50,7 @@ in
       '';
       description = ''
         Configuration for tmenu in TOML format.
-        
+
         Accepts any valid TOML structure. You can define custom menus, submenus,
         colors, and display settings - the freeform type auto-generates all options.
       '';

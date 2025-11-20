@@ -26,7 +26,7 @@ Then either:
 
   programs.tmenu = {
     enable = true;
-    
+
     settings = {
       display = {
         centered = true;
@@ -36,13 +36,13 @@ Then either:
         theme = "catppuccin-mocha";
         figlet = false;
       };
-      
+
       menu = {
         Terminal = "alacritty";
         Browser = "firefox";
         System = "submenu:System";
       };
-      
+
       "submenu.System" = {
         "File Manager" = "thunar";
         "System Monitor" = "htop";
@@ -82,6 +82,7 @@ tmenu
 ```
 
 **Dependencies** (automatically installed by pip):
+
 - x256
 - pyfiglet
 - tomli (for Python < 3.11)
