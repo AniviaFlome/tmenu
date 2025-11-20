@@ -69,16 +69,13 @@ Then either:
 }
 ```
 
-### Option 2: Using pip (works anywhere)
+### Option 2: Using pip
 
 ```bash
 # Install from source
 git clone https://github.com/AniviaFlome/tmenu
 cd tmenu
 pip install .
-
-# Or install in development mode (editable)
-pip install -e .
 
 # Run tmenu
 tmenu
@@ -88,39 +85,6 @@ tmenu
 - x256
 - pyfiglet
 - tomli (for Python < 3.11)
-
-### Option 3: Manual Installation (no installation)
-
-```bash
-# Clone the repository
-git clone https://github.com/AniviaFlome/tmenu
-cd tmenu
-
-# Install dependencies manually
-pip install x256 pyfiglet tomli
-
-# Run directly
-python -m src.tmenu
-
-# Or copy to your PATH
-cp -r src/tmenu ~/.local/lib/python3.*/site-packages/
-# Create wrapper script
-echo '#!/usr/bin/env python3
-import tmenu
-tmenu.main()' > ~/.local/bin/tmenu
-chmod +x ~/.local/bin/tmenu
-```
-
-### Where Configuration is Stored
-
-tmenu follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html):
-
-- **Config**: `$XDG_CONFIG_HOME/tmenu/` (defaults to `~/.config/tmenu/`)
-- **User themes**: `$XDG_CONFIG_HOME/tmenu/themes/`
-- **System themes** (when installed): Package installation directory or `/nix/store/.../share/tmenu/themes/`
-
-You can override the config path by setting the `XDG_CONFIG_HOME` environment variable.
-
 
 ## Usage
 
@@ -134,7 +98,7 @@ tmenu
 
 tmenu will:
 
-1. Load menu items from your config file (`$XDG_CONFIG_HOME/tmenu/config.toml`, defaults to `~/.config/tmenu/config.toml`)
+1. Load menu items from your config file (`$XDG_CONFIG_HOME/tmenu/config.toml`)
 2. Display them in a centered menu with your custom title
 3. Allow navigation into submenus
 4. Execute the selected command
@@ -244,7 +208,7 @@ tmenu includes many built-in themes that you can use by setting `theme` in your 
 
 ```toml
 [display]
-theme = "nord"
+theme = "catppuccin-mocha"
 ```
 
 ### Custom Themes
