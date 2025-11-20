@@ -117,10 +117,9 @@ tmenu follows the [XDG Base Directory Specification](https://specifications.free
 
 - **Config**: `$XDG_CONFIG_HOME/tmenu/` (defaults to `~/.config/tmenu/`)
 - **User themes**: `$XDG_CONFIG_HOME/tmenu/themes/`
-- **User data**: `$XDG_DATA_HOME/tmenu/` (defaults to `~/.local/share/tmenu/`)
-- **System themes** (when installed via Nix): `/nix/store/.../share/tmenu/themes/`
+- **System themes** (when installed): Package installation directory or `/nix/store/.../share/tmenu/themes/`
 
-You can override these paths by setting the `XDG_CONFIG_HOME` and `XDG_DATA_HOME` environment variables.
+You can override the config path by setting the `XDG_CONFIG_HOME` environment variable.
 
 
 ## Usage
@@ -279,8 +278,8 @@ theme = "mytheme"
 Themes are located in:
 
 1. `$XDG_CONFIG_HOME/tmenu/themes/` (user themes - highest priority)
-2. `$XDG_DATA_HOME/tmenu/themes/` (user data themes)
-3. System data directories from `$XDG_DATA_DIRS` (bundled themes when installed)
+2. Package installation directory (bundled themes when installed via pip/setuptools)
+3. System data directories from `$XDG_DATA_DIRS` (bundled themes when installed via Nix)
 
 ### First Run
 

@@ -33,17 +33,9 @@ try:
 except ImportError:
     PYFIGLET_AVAILABLE = False
 
-
 def get_xdg_config_home() -> str:
     """Get XDG config directory, defaulting to ~/.config if not set."""
     return os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
-
-
-def get_xdg_data_home() -> str:
-    """Get XDG data directory, defaulting to ~/.local/share if not set."""
-    return os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
-
-
 
 class TMenu:
     """Terminal menu for selecting and executing commands."""
@@ -480,7 +472,7 @@ def load_theme(theme_name: str) -> Optional[dict]:
 
     Searches in order:
     1. $XDG_CONFIG_HOME/tmenu/themes/{theme_name}.toml (user config themes)
-    2. $XDG_DATA_HOME/tmenu/themes/{theme_name}.toml (user data themes)
+    2. Package installation directory (bundled themes when installed via pip/setuptools)
     3. System data directories from $XDG_DATA_DIRS (e.g., /usr/share, /nix/store/.../share)
     4. ./themes/{theme_name}.toml (development fallback - relative to script parent)
 
@@ -490,9 +482,12 @@ def load_theme(theme_name: str) -> Optional[dict]:
     theme_locations = [
         # User config directory
         os.path.join(get_xdg_config_home(), "tmenu", "themes", f"{theme_name}.toml"),
-        # User data directory
-        os.path.join(get_xdg_data_home(), "tmenu", "themes", f"{theme_name}.toml"),
     ]
+
+    # Bundled themes in package installation directory (for pip/setuptools installations)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    package_themes = os.path.join(script_dir, "themes", f"{theme_name}.toml")
+    theme_locations.append(package_themes)
 
     # Add system data directories from XDG_DATA_DIRS
     xdg_data_dirs = os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share')
@@ -500,8 +495,7 @@ def load_theme(theme_name: str) -> Optional[dict]:
         if data_dir:
             theme_locations.append(os.path.join(data_dir, "tmenu", "themes", f"{theme_name}.toml"))
 
-    # Development fallback - relative to script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Development fallback - relative to script parent location
     parent_dir = os.path.dirname(script_dir)
     theme_locations.append(os.path.join(parent_dir, "themes", f"{theme_name}.toml"))
 
