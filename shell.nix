@@ -10,13 +10,11 @@ pkgs.mkShell {
     python3Packages.pytest-cov
 
     # Development tools
+    pyright
     python3Packages.flake8
     python3Packages.mypy
     python3Packages.pyfiglet
     python3Packages.x256
-
-    # Optional utilities
-    ncurses
   ];
 
   shellHook = ''
@@ -24,10 +22,11 @@ pkgs.mkShell {
     echo "Python version: $(python3 --version)"
     echo ""
     echo "Available commands:"
-    echo "  python src/tmenu.py      - Run tmenu"
-    echo "  pytest                   - Run tests"
+    echo "  python -m tmenu          - Run tmenu"
     echo "  nix fmt                  - Format all files"
-    echo "  flake8 src/              - Lint code"
-    echo "  mypy src/                - Type check code"
+    echo "  pytest                   - Run tests"
+    echo "  pyright tmenu/           - Check errors"
+    echo "  flake8 tmenu/            - Lint code"
+    echo "  mypy tmenu/              - Type check code"
   '';
 }

@@ -23,8 +23,12 @@ tmenu = "tmenu:main"
 Homepage = "https://github.com/AniviaFlome/tmenu"
 
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["*"]
+where = ["."]
+include = ["tmenu*"]
 
 [tool.setuptools.package-data]
 tmenu = ["config.default.toml", "themes/*.toml"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

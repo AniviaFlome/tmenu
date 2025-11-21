@@ -45,6 +45,11 @@
         default = self.homeManagerModules.tmenu;
       };
 
+      overlays = {
+        default = import ./nix/overlay.nix;
+        tmenu = import ./nix/overlay.nix;
+      };
+
       nixosModules = {
         tmenu = import ./nix/nixos-module.nix;
         default = self.nixosModules.tmenu;

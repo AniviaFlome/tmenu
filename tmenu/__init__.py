@@ -9,31 +9,23 @@ import os
 import shlex
 import sys
 import time
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 # TOML parsing support
 try:
     import tomllib  # Python 3.11+
 except ImportError:
-    try:
-        import tomli as tomllib  # Fallback for older Python versions
-    except ImportError:
-        print(
-            "Error: TOML support requires Python 3.11+ or 'tomli' package",
-            file=sys.stderr,
-        )
-        print("Install with: pip install tomli", file=sys.stderr)
-        sys.exit(1)
+    import tomli as tomllib  # type: ignore  # Fallback
 
-from x256 import x256
+from x256 import x256  # type: ignore
 
 # Optional pyfiglet support for ASCII art titles
 try:
-    import pyfiglet
+    import pyfiglet  # type: ignore
 
     PYFIGLET_AVAILABLE = True
 except ImportError:
+    pyfiglet = None  # type: ignore
     PYFIGLET_AVAILABLE = False
 
 
@@ -82,10 +74,11 @@ class TMenu:
         self.is_submenu = is_submenu
 
         # For mouse support
-        self.item_positions = []  # List of (y, start_x, end_x, item_index)
-        self.last_click_time = 0
-        self.last_click_item = None
-        self.double_click_delay = 0.2  # 200ms for double-click detection
+        # List of (y, start_x, end_x, item_index)
+        self.item_positions: List[Tuple[int, int, int, int]] = []
+        self.last_click_time: float = 0.0
+        self.last_click_item: Optional[int] = None
+        self.double_click_delay = 0.2  # 200ms for double-click
 
     def get_colors(self, stdscr) -> dict:
         """Initialize color pairs based on config."""
@@ -121,9 +114,13 @@ class TMenu:
         if not PYFIGLET_AVAILABLE or not self.config.get("figlet", False):
             return [title]
 
+        if pyfiglet is None:
+            return [title]
+
         try:
             font = self.config.get("figlet_font", "standard")
-            fig = pyfiglet.Figlet(font=font, width=self.config.get("width", 60))
+            width = self.config.get("width", 60)
+            fig = pyfiglet.Figlet(font=font, width=width)
             figlet_text = fig.renderText(title)
             # Split into lines and remove trailing empty lines
             lines = figlet_text.rstrip("\n").split("\n")
@@ -172,7 +169,8 @@ class TMenu:
                     break
                 # Center or left-align title line
                 if self.centered:
-                    title_x = start_x + max(0, (menu_width - len(title_line)) // 2)
+                    offset = max(0, (menu_width - len(title_line)) // 2)
+                    title_x = start_x + offset
                 else:
                     title_x = start_x
                 try:
@@ -277,7 +275,9 @@ class TMenu:
         # Draw scrollbar indicator if needed
         if len(self.all_items) > visible_lines:
             try:
-                scroll_info = f" [{self.selected_index + 1}/{len(self.all_items)}]"
+                idx = self.selected_index + 1
+                total = len(self.all_items)
+                scroll_info = f" [{idx}/{total}]"
                 stdscr.addstr(
                     sep_y,
                     start_x + menu_width - len(scroll_info),
@@ -358,9 +358,9 @@ class TMenu:
                     _, mx, my, _, bstate = curses.getmouse()
 
                     # Check for native double-click first
-                    is_native_double = bstate & curses.BUTTON1_DOUBLE_CLICKED
+                    is_native_double = bool(bstate & curses.BUTTON1_DOUBLE_CLICKED)
 
-                    # Also handle single clicks for manual double-click detection
+                    # Handle single/double clicks
                     if bstate & curses.BUTTON1_CLICKED or is_native_double:
                         current_time = time.time()
                         # Check if click is on a menu item
@@ -381,21 +381,24 @@ class TMenu:
                                     elif selected == "Exit":
                                         return None
                                     command = self.menu_items.get(selected, selected)
-                                    if command.startswith("submenu:"):
+                                    if command and command.startswith("submenu:"):
                                         submenu_name = command[8:]
                                         if submenu_name in self.submenus:
                                             return (
-                                                f"__SUBMENU__{submenu_name}__{selected}"
+                                                f"__SUBMENU__"
+                                                f"{submenu_name}__"
+                                                f"{selected}"
                                             )
                                     else:
                                         return command
                                 else:
-                                    # Single click - move selection and update click tracking
+                                    # Single click - move selection and
+                                    # update click tracking
                                     self.selected_index = item_idx
                                     self.last_click_item = item_idx
                                     self.last_click_time = current_time
                                 break
-                except Exception as e:
+                except Exception:
                     pass
 
             # Vim keys: j/k for up/down
@@ -441,7 +444,7 @@ class TMenu:
                     elif selected == "Exit":
                         return None
                     command = self.menu_items.get(selected, selected)
-                    if command.startswith("submenu:"):
+                    if command and command.startswith("submenu:"):
                         submenu_name = command[8:]
                         if submenu_name in self.submenus:
                             return f"__SUBMENU__{submenu_name}__{selected}"
@@ -476,10 +479,10 @@ def load_theme(theme_name: str) -> Optional[dict]:
     """Load a theme from various locations.
 
     Searches in order:
-    1. $XDG_CONFIG_HOME/tmenu/themes/{theme_name}.toml (user config themes)
-    2. Package installation directory (bundled themes when installed via pip/setuptools)
-    3. System data directories from $XDG_DATA_DIRS (e.g., /usr/share, /nix/store/.../share)
-    4. ./themes/{theme_name}.toml (development fallback - relative to script parent)
+    1. $XDG_CONFIG_HOME/tmenu/themes/{theme_name}.toml
+    2. Package installation directory (bundled themes via pip)
+    3. System data directories from $XDG_DATA_DIRS
+    4. ./themes/{theme_name}.toml (development fallback)
 
     Returns:
         Dictionary with theme config if theme found, None otherwise
@@ -489,7 +492,7 @@ def load_theme(theme_name: str) -> Optional[dict]:
         os.path.join(get_xdg_config_home(), "tmenu", "themes", f"{theme_name}.toml"),
     ]
 
-    # Bundled themes in package installation directory (for pip/setuptools installations)
+    # Bundled themes in package installation directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
     package_themes = os.path.join(script_dir, "themes", f"{theme_name}.toml")
     theme_locations.append(package_themes)
@@ -518,7 +521,7 @@ def load_theme(theme_name: str) -> Optional[dict]:
 
 
 def create_default_config():
-    """Create default config file in $XDG_CONFIG_HOME/tmenu/ if it doesn't exist."""
+    """Create default config in $XDG_CONFIG_HOME/tmenu/."""
     config_dir = os.path.join(get_xdg_config_home(), "tmenu")
     config_file = os.path.join(config_dir, "config.toml")
 
@@ -551,13 +554,13 @@ def load_custom_menus(
     """Load custom menu configurations from specified directory.
 
     Args:
-        theme_dir: Path to theme directory. If None, no custom menus are loaded.
+        theme_dir: Path to theme directory.
 
     Returns:
         Tuple of (menu_items dict, submenus dict)
     """
-    menu_items = {}
-    submenus = {}
+    menu_items: Dict[str, str] = {}
+    submenus: Dict[str, Dict[str, str]] = {}
 
     # Return empty if no directory specified
     if theme_dir is None:
@@ -587,7 +590,8 @@ def load_custom_menus(
                     # Load submenus (keys starting with "submenu.")
                     for section_name, section_data in data.items():
                         if section_name.startswith("submenu."):
-                            submenu_name = section_name[8:]  # Remove 'submenu.' prefix
+                            # Remove 'submenu.' prefix
+                            submenu_name = section_name[8:]
                             if submenu_name not in submenus:
                                 submenus[submenu_name] = {}
                             submenus[submenu_name].update(section_data)
@@ -730,21 +734,75 @@ def load_config(
     return config, menu_items, submenus, title
 
 
+def read_stdin_items() -> List[str]:
+    """Read menu items from stdin.
+
+    Returns:
+        List of non-empty lines from stdin
+    """
+    items = []
+    for line in sys.stdin:
+        line = line.rstrip("\n\r")
+        if line:  # Skip empty lines
+            items.append(line)
+    return items
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="tmenu - A configurable terminal menu")
     parser.add_argument("-c", "--config", help="Path to configuration file")
+    parser.add_argument(
+        "--placeholder", help="Title to display when reading from stdin"
+    )
 
     args = parser.parse_args()
 
+    # Check if stdin is being piped (dmenu-like mode)
+    if not sys.stdin.isatty():
+        # Read items from stdin
+        stdin_items = read_stdin_items()
+
+        if not stdin_items:
+            print("Error: No items received from stdin.", file=sys.stderr)
+            sys.exit(1)
+
+        # Load config for theme/display settings only
+        config, _, _, _ = load_config(args.config)
+
+        # Use placeholder as title if provided
+        title = args.placeholder if args.placeholder else ""
+
+        # Create simple menu without commands
+        menu = TMenu(
+            stdin_items,
+            config=config,
+            menu_items={},  # No command execution in stdin mode
+            submenus={},
+            title=title,
+            is_submenu=False,
+        )
+
+        try:
+            selection = curses.wrapper(menu.run)
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+        # Print selected item to stdout (don't execute)
+        if selection and not selection.startswith("__"):
+            print(selection)
+            sys.exit(0)
+        else:
+            sys.exit(1)
     # Load configuration
     config, menu_items, submenus, title = load_config(args.config)
 
     # Check if we have menu items
     if not menu_items:
         print("Error: No menu items found in configuration.", file=sys.stderr)
+        config_path = f"{get_xdg_config_home()}/tmenu/config.toml"
         print(
-            f"Please create a config file at {get_xdg_config_home()}/tmenu/config.toml",
+            f"Please create a config file at {config_path}",
             file=sys.stderr,
         )
         print("with a [menu] section defining your menu items.", file=sys.stderr)

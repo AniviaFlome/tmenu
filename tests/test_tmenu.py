@@ -3,8 +3,6 @@
 Tests for tmenu
 """
 
-import os
-
 import pytest
 
 from tmenu import TMenu, load_config

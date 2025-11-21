@@ -4,7 +4,7 @@ Vibe coded for personal use. Use it if you want.
 
 ## Installation
 
-tmenu is packaged as a standard Python package with `pyproject.toml`. The source code is organized as a Python package in `src/tmenu/` (this is the standard Python packaging structure, not a monorepo).
+tmenu is packaged as a standard Python package with `pyproject.toml`.
 
 ### Option 1: Using Nix Flakes (Recommended for NixOS users)
 
@@ -57,15 +57,31 @@ Then either:
 ```nix
 {
   imports = [ inputs.tmenu.nixosModules.default ];
+
   programs.tmenu.enable = true;
 }
 ```
 
-**C. Direct installation in home.packages**:
+**C. Direct installation in home.packages and environemnt.systemPackages**:
 
 ```nix
 {
-  home.packages = [ inputs.tmenu.packages.${system}.default ];
+  home.packages = [ inputs.tmenu.packages.${pkgs.stdenv.hostPlatform.system}.default ];
+}
+```
+
+**D. Using Overlay**:
+
+Apply the overlay to add tmenu to your nixpkgs:
+
+```nix
+{
+  nixpkgs.overlays = [ inputs.tmenu.overlays.default ];
+
+  # Then use it like any other package
+  environment.systemPackages = [ pkgs.tmenu ];
+  # or in home-manager
+  home.packages = [ pkgs.tmenu ];
 }
 ```
 
@@ -116,6 +132,47 @@ Specify a custom config file:
 ```bash
 tmenu -c ~/.config/tmenu/custom.toml
 ```
+
+### dmenu-like Usage (Piping Options)
+
+tmenu can also work like `dmenu` by reading options from stdin via pipes. When used this way, tmenu displays the piped options as a menu and **prints** the selected option to stdout instead of executing it.
+
+**Basic example:**
+
+```bash
+echo -e 'option 1\noption 2\noption 3' | tmenu
+```
+
+**With custom title:**
+
+```bash
+echo -e 'red\ngreen\nblue' | tmenu --placeholder "Select a color"
+```
+
+**Real-world examples:**
+
+```bash
+# Select a file
+ls | tmenu --placeholder "Select file"
+
+# Select from command output
+git branch | tmenu --placeholder "Select branch"
+
+# Chain with other commands
+selected=$(find . -type f | tmenu --placeholder "Choose file")
+echo "You selected: $selected"
+
+# Select and open in editor
+vim "$(find ~/notes -name '*.md' | tmenu --placeholder 'Select note')"
+```
+
+**Features when using stdin:**
+
+- All keyboard shortcuts still work (vim keys, WASD, mouse, etc.)
+- Themes and display settings are loaded from your config (if present)
+- The `--placeholder` flag sets the menu title
+- Selected item is printed to stdout (not executed)
+- Exit code 0 on successful selection, 1 on cancel/escape
 
 ## Keyboard Shortcuts
 
@@ -274,7 +331,7 @@ themes_dir = "menus"
 nix-shell
 
 # Run tmenu
-python src/tmenu.py
+python -m tmenu
 
 # Run tests
 pytest
@@ -297,22 +354,6 @@ python tmenu.py
 
 # Run tests
 pytest
-
-# Format code
-black tmenu.py
-```
-
-## Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=tmenu
-
-# Run specific test
-pytest test_tmenu.py::test_filter_items
 ```
 
 ## Contributing
