@@ -302,11 +302,13 @@ class TMenu:
         curses.curs_set(0)  # Hide cursor
         stdscr.keypad(True)
 
-        # Enable mouse support with explicit double-click
+        # Enable mouse support with explicit double-click and scroll wheel
         mouse_mask = (
             curses.BUTTON1_CLICKED
             | curses.BUTTON1_DOUBLE_CLICKED
             | curses.BUTTON1_TRIPLE_CLICKED
+            | curses.BUTTON4_PRESSED  # Scroll up
+            | curses.BUTTON5_PRESSED  # Scroll down
         )
         curses.mousemask(mouse_mask)
 
@@ -352,10 +354,26 @@ class TMenu:
             elif key == ord("q"):  # Quit
                 return None
 
-            # Mouse support with double-click detection
+            # Mouse support with double-click detection and scroll wheel
             elif key == curses.KEY_MOUSE:
                 try:
                     _, mx, my, _, bstate = curses.getmouse()
+
+                    # Handle scroll wheel - scroll up
+                    if bstate & curses.BUTTON4_PRESSED:
+                        if self.selected_index > 0:
+                            self.selected_index -= 1
+                        else:
+                            # Wrap to bottom
+                            self.selected_index = len(self.all_items) - 1
+
+                    # Handle scroll wheel - scroll down
+                    elif bstate & curses.BUTTON5_PRESSED:
+                        if self.selected_index < len(self.all_items) - 1:
+                            self.selected_index += 1
+                        else:
+                            # Wrap to top
+                            self.selected_index = 0
 
                     # Check for native double-click first
                     is_native_double = bool(bstate & curses.BUTTON1_DOUBLE_CLICKED)
@@ -399,14 +417,20 @@ class TMenu:
                 except Exception:
                     pass
 
-            # Vim keys: j/k for up/down
+            # Vim keys: j/k for up/down (with wraparound)
             elif key == ord("k"):  # Vim up
                 if self.selected_index > 0:
                     self.selected_index -= 1
+                else:
+                    # Wrap to bottom
+                    self.selected_index = len(self.all_items) - 1
 
             elif key == ord("j"):  # Vim down
                 if self.selected_index < len(self.all_items) - 1:
                     self.selected_index += 1
+                else:
+                    # Wrap to top
+                    self.selected_index = 0
 
             # Vim keys: h/l or g/G for home/end
             elif key == ord("h") or key == ord("g"):  # Vim home/top
@@ -415,14 +439,20 @@ class TMenu:
             elif key == ord("l") or key == ord("G"):  # Vim end/bottom
                 self.selected_index = max(0, len(self.all_items) - 1)
 
-            # WASD keys: w/s for up/down
+            # WASD keys: w/s for up/down (with wraparound)
             elif key == ord("w"):  # WASD up
                 if self.selected_index > 0:
                     self.selected_index -= 1
+                else:
+                    # Wrap to bottom
+                    self.selected_index = len(self.all_items) - 1
 
             elif key == ord("s"):  # WASD down
                 if self.selected_index < len(self.all_items) - 1:
                     self.selected_index += 1
+                else:
+                    # Wrap to top
+                    self.selected_index = 0
 
             # WASD keys: a/d for page up/down or home/end
             elif key == ord("a"):  # WASD left/home
@@ -449,14 +479,20 @@ class TMenu:
                     else:
                         return command
 
-            # Arrow keys and original shortcuts
+            # Arrow keys and original shortcuts (with wraparound)
             elif key == curses.KEY_UP or key == 16:  # Up or Ctrl+P
                 if self.selected_index > 0:
                     self.selected_index -= 1
+                else:
+                    # Wrap to bottom
+                    self.selected_index = len(self.all_items) - 1
 
             elif key == curses.KEY_DOWN or key == 14:  # Down or Ctrl+N
                 if self.selected_index < len(self.all_items) - 1:
                     self.selected_index += 1
+                else:
+                    # Wrap to top
+                    self.selected_index = 0
 
             elif key == curses.KEY_PPAGE:  # Page Up
                 self.selected_index = max(0, self.selected_index - 10)

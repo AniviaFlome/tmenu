@@ -176,37 +176,39 @@ vim "$(find ~/notes -name '*.md' | tmenu --placeholder 'Select note')"
 
 ## Keyboard Shortcuts
 
+**Note:** Navigation keys (arrow, vim, WASD) support **wraparound** - pressing down at the bottom wraps to top, and pressing up at the top wraps to bottom.
+
 ### Arrow Keys & Standard
 
-| Key               | Action              |
-| ----------------- | ------------------- |
-| `↑` / `Ctrl+P`    | Move selection up   |
-| `↓` / `Ctrl+N`    | Move selection down |
-| `Home` / `Ctrl+A` | Jump to first item  |
-| `End` / `Ctrl+E`  | Jump to last item   |
-| `Page Up`         | Move up 10 items    |
-| `Page Down`       | Move down 10 items  |
-| `Enter`           | Select current item |
-| `Escape`          | Go back or exit     |
-| `Q`               | Exit                |
+| Key               | Action                      |
+| ----------------- | --------------------------- |
+| `↑` / `Ctrl+P`    | Move selection up (wraps)   |
+| `↓` / `Ctrl+N`    | Move selection down (wraps) |
+| `Home` / `Ctrl+A` | Jump to first item          |
+| `End` / `Ctrl+E`  | Jump to last item           |
+| `Page Up`         | Move up 10 items            |
+| `Page Down`       | Move down 10 items          |
+| `Enter`           | Select current item         |
+| `Escape`          | Go back or exit             |
+| `Q`               | Exit                        |
 
 ### Vim Keys
 
-| Key       | Action              |
-| --------- | ------------------- |
-| `j`       | Move selection down |
-| `k`       | Move selection up   |
-| `h` / `g` | Jump to first item  |
-| `l` / `G` | Jump to last item   |
+| Key       | Action                      |
+| --------- | --------------------------- |
+| `j`       | Move selection down (wraps) |
+| `k`       | Move selection up (wraps)   |
+| `h` / `g` | Jump to first item          |
+| `l` / `G` | Jump to last item           |
 
 ### WASD Keys
 
-| Key | Action              |
-| --- | ------------------- |
-| `w` | Move selection up   |
-| `s` | Move selection down |
-| `a` | Jump to first item  |
-| `d` | Jump to last item   |
+| Key | Action                      |
+| --- | --------------------------- |
+| `w` | Move selection up (wraps)   |
+| `s` | Move selection down (wraps) |
+| `a` | Jump to first item          |
+| `d` | Jump to last item           |
 
 ### Number Shortcuts
 
@@ -216,10 +218,12 @@ vim "$(find ~/notes -name '*.md' | tmenu --placeholder 'Select note')"
 
 ### Mouse
 
-| Action       | Effect                         |
-| ------------ | ------------------------------ |
-| Single click | Move selection to item         |
-| Double-click | Execute the item (200ms delay) |
+| Action         | Effect                         |
+| -------------- | ------------------------------ |
+| Single click   | Move selection to item         |
+| Double-click   | Execute the item (200ms delay) |
+| Scroll wheel ↑ | Move selection up (wraps)      |
+| Scroll wheel ↓ | Move selection down (wraps)    |
 
 ## Configuration
 
