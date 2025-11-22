@@ -307,9 +307,12 @@ class TMenu:
             curses.BUTTON1_CLICKED
             | curses.BUTTON1_DOUBLE_CLICKED
             | curses.BUTTON1_TRIPLE_CLICKED
-            | curses.BUTTON4_PRESSED  # Scroll up
-            | curses.BUTTON5_PRESSED  # Scroll down
         )
+        # Add scroll wheel support if available
+        if hasattr(curses, 'BUTTON4_PRESSED'):
+            mouse_mask |= curses.BUTTON4_PRESSED  # Scroll up
+        if hasattr(curses, 'BUTTON5_PRESSED'):
+            mouse_mask |= curses.BUTTON5_PRESSED  # Scroll down
         curses.mousemask(mouse_mask)
 
         colors = self.get_colors(stdscr)
@@ -346,12 +349,14 @@ class TMenu:
                         return command
                 return None
 
-            elif key == 27:  # Escape
+            elif key == 27 or key == ord("e"):  # Escape or 'e' key
                 if self.is_submenu:
                     return "__GO_BACK__"
                 return None
 
-            elif key == ord("q"):  # Quit
+            elif key == ord("q"):  # Quit (or go back in submenu)
+                if self.is_submenu:
+                    return "__GO_BACK__"
                 return None
 
             # Mouse support with double-click detection and scroll wheel
@@ -359,16 +364,16 @@ class TMenu:
                 try:
                     _, mx, my, _, bstate = curses.getmouse()
 
-                    # Handle scroll wheel - scroll up
-                    if bstate & curses.BUTTON4_PRESSED:
+                    # Handle scroll wheel - scroll up (if available)
+                    if hasattr(curses, 'BUTTON4_PRESSED') and bstate & curses.BUTTON4_PRESSED:
                         if self.selected_index > 0:
                             self.selected_index -= 1
                         else:
                             # Wrap to bottom
                             self.selected_index = len(self.all_items) - 1
 
-                    # Handle scroll wheel - scroll down
-                    elif bstate & curses.BUTTON5_PRESSED:
+                    # Handle scroll wheel - scroll down (if available)
+                    elif hasattr(curses, 'BUTTON5_PRESSED') and bstate & curses.BUTTON5_PRESSED:
                         if self.selected_index < len(self.all_items) - 1:
                             self.selected_index += 1
                         else:
