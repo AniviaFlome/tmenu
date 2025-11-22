@@ -13,7 +13,7 @@ let
 in
 {
   options.programs.tmenu = {
-    enable = mkEnableOption "tmenu, a dmenu-like command executor for the terminal";
+    enable = mkEnableOption "dmenu for terminal";
 
     package = mkOption {
       type = types.package;

@@ -31,7 +31,7 @@
       apps = eachSystem (pkgs: {
         default = {
           type = "app";
-          program = "${self.packages.${pkgs.system}.default}/bin/tmenu";
+          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/tmenu";
         };
       });
 
@@ -41,18 +41,18 @@
       });
 
       homeManagerModules = {
-        tmenu = import ./nix/home-manager-module.nix;
-        default = self.homeManagerModules.tmenu;
+        default = import ./nix/home-manager-module.nix;
+        tmenu = self.homeManagerModues.default;
       };
 
       overlays = {
         default = import ./nix/overlay.nix;
-        tmenu = import ./nix/overlay.nix;
+        tmenu = self.overlays.default;
       };
 
       nixosModules = {
-        tmenu = import ./nix/nixos-module.nix;
-        default = self.nixosModules.tmenu;
+        default = import ./nix/nixos-module.nix;
+        tmenu = self.nixosModules.default;
       };
     };
 }

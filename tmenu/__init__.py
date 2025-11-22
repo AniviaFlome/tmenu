@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-tmenu - A dmenu-like command executor for the terminal using ncurses
+tmenu - dmenu for terminal
 """
 
 import argparse
@@ -385,9 +385,7 @@ class TMenu:
                                         submenu_name = command[8:]
                                         if submenu_name in self.submenus:
                                             return (
-                                                f"__SUBMENU__"
-                                                f"{submenu_name}__"
-                                                f"{selected}"
+                                                f"__SUBMENU__{submenu_name}__{selected}"
                                             )
                                     else:
                                         return command
@@ -783,10 +781,23 @@ def main():
             is_submenu=False,
         )
 
+        # Reopen /dev/tty for interactive input since stdin is used for data
+        # This allows keyboard and mouse input to work in pipe mode
         try:
-            selection = curses.wrapper(menu.run)
-        except KeyboardInterrupt:
-            sys.exit(130)
+            with open("/dev/tty") as tty_input:
+                # Redirect stdin to the terminal for curses
+                old_stdin = sys.stdin
+                sys.stdin = tty_input
+                try:
+                    selection = curses.wrapper(menu.run)
+                except KeyboardInterrupt:
+                    sys.exit(130)
+                finally:
+                    sys.stdin = old_stdin
+        except (OSError, IOError):
+            # Fallback if /dev/tty is not available (e.g., running in non-interactive environment)
+            print("Error: Cannot open /dev/tty for interactive input.", file=sys.stderr)
+            sys.exit(1)
 
         # Print selected item to stdout (don't execute)
         if selection and not selection.startswith("__"):
