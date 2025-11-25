@@ -303,17 +303,17 @@ class TMenu:
         stdscr.keypad(True)
 
         # Enable mouse support with explicit double-click and scroll wheel
-        mouse_mask = (
-            curses.BUTTON1_CLICKED
-            | curses.BUTTON1_DOUBLE_CLICKED
-            | curses.BUTTON1_TRIPLE_CLICKED
-        )
-        # Add scroll wheel support if available
+        # Use ALL_MOUSE_EVENTS to ensure we catch everything, including scroll
+        mouse_mask = curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION
+        
         if hasattr(curses, 'BUTTON4_PRESSED'):
             mouse_mask |= curses.BUTTON4_PRESSED  # Scroll up
         if hasattr(curses, 'BUTTON5_PRESSED'):
             mouse_mask |= curses.BUTTON5_PRESSED  # Scroll down
+            
         curses.mousemask(mouse_mask)
+        # Disable built-in mouse click delay since we handle double-clicks manually
+        curses.mouseinterval(0)
 
         colors = self.get_colors(stdscr)
 
