@@ -825,16 +825,23 @@ def main():
         # Reopen /dev/tty for interactive input since stdin is used for data
         # This allows keyboard and mouse input to work in pipe mode
         try:
-            with open("/dev/tty") as tty_input:
-                # Redirect stdin to the terminal for curses
-                old_stdin = sys.stdin
-                sys.stdin = tty_input
+            with open("/dev/tty", "r") as tty_input:
+                # Save original stdin fd
+                stdin_fd = sys.stdin.fileno()
+                saved_stdin_fd = os.dup(stdin_fd)
+                
                 try:
+                    # Redirect stdin to tty using dup2
+                    os.dup2(tty_input.fileno(), stdin_fd)
+                    
+                    # Run menu
                     selection = curses.wrapper(menu.run)
                 except KeyboardInterrupt:
                     sys.exit(130)
                 finally:
-                    sys.stdin = old_stdin
+                    # Restore original stdin
+                    os.dup2(saved_stdin_fd, stdin_fd)
+                    os.close(saved_stdin_fd)
         except (OSError, IOError):
             # Fallback if /dev/tty is not available (e.g., running in non-interactive environment)
             print("Error: Cannot open /dev/tty for interactive input.", file=sys.stderr)
