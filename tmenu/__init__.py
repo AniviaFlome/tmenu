@@ -858,7 +858,7 @@ def main():
                     os.close(saved_stdout)
                     os.close(saved_stderr)
         except (OSError, IOError) as e:
-            # Fallback if /dev/tty is not available (e.g., running in non-interactive environment)
+            # Fallback if /dev/tty is not available
             print(f"Error: Cannot open /dev/tty for interactive input: {e}", file=sys.stderr)
             sys.exit(1)
 
