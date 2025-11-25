@@ -303,18 +303,18 @@ class TMenu:
         stdscr.keypad(True)
 
         # Enable mouse support with explicit double-click and scroll wheel
-        # Use ALL_MOUSE_EVENTS to ensure we catch everything, including scroll
-        mouse_mask = curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION
-        
-        if hasattr(curses, 'BUTTON4_PRESSED'):
+        mouse_mask = (
+            curses.BUTTON1_CLICKED
+            | curses.BUTTON1_DOUBLE_CLICKED
+            | curses.BUTTON1_TRIPLE_CLICKED
+        )
+        # Add scroll wheel support if available
+        if hasattr(curses, "BUTTON4_PRESSED"):
             mouse_mask |= curses.BUTTON4_PRESSED  # Scroll up
-        if hasattr(curses, 'BUTTON5_PRESSED'):
+        if hasattr(curses, "BUTTON5_PRESSED"):
             mouse_mask |= curses.BUTTON5_PRESSED  # Scroll down
-            
         curses.mousemask(mouse_mask)
-        # Disable built-in mouse click delay since we handle double-clicks manually
-        curses.mouseinterval(0)
-        
+
         colors = self.get_colors(stdscr)
 
         while True:
@@ -365,7 +365,10 @@ class TMenu:
                     _, mx, my, _, bstate = curses.getmouse()
 
                     # Handle scroll wheel - scroll up (if available)
-                    if hasattr(curses, 'BUTTON4_PRESSED') and bstate & curses.BUTTON4_PRESSED:
+                    if (
+                        hasattr(curses, "BUTTON4_PRESSED")
+                        and bstate & curses.BUTTON4_PRESSED
+                    ):
                         if self.selected_index > 0:
                             self.selected_index -= 1
                         else:
@@ -373,7 +376,10 @@ class TMenu:
                             self.selected_index = len(self.all_items) - 1
 
                     # Handle scroll wheel - scroll down (if available)
-                    elif hasattr(curses, 'BUTTON5_PRESSED') and bstate & curses.BUTTON5_PRESSED:
+                    elif (
+                        hasattr(curses, "BUTTON5_PRESSED")
+                        and bstate & curses.BUTTON5_PRESSED
+                    ):
                         if self.selected_index < len(self.all_items) - 1:
                             self.selected_index += 1
                         else:
@@ -822,44 +828,31 @@ def main():
             is_submenu=False,
         )
 
-        # Reopen /dev/tty for interactive input/output
-        # This ensures curses works correctly even when stdin/stdout are pipes
+        # Reopen /dev/tty for interactive input since stdin is used for data
+        # This allows keyboard and mouse input to work in pipe mode
         try:
-            with open("/dev/tty", "r") as tty_in, open("/dev/tty", "w") as tty_out:
-                tty_in_fd = tty_in.fileno()
-                tty_out_fd = tty_out.fileno()
-                
-                # Save original file descriptors
-                stdin_fd = sys.stdin.fileno()
-                stdout_fd = sys.stdout.fileno()
-                stderr_fd = sys.stderr.fileno()
-                
-                saved_stdin = os.dup(stdin_fd)
-                saved_stdout = os.dup(stdout_fd)
-                saved_stderr = os.dup(stderr_fd)
-                
+            with open("/dev/tty", "r") as tty_input:
+                # Redirect stdin to the terminal for curses
+                # We must use dup2 because curses (C library) reads from fd 0
+                old_stdin_fd = os.dup(0)
+                os.dup2(tty_input.fileno(), 0)
+
+                # Update sys.stdin wrapper as well
+                old_stdin = sys.stdin
+                sys.stdin = tty_input
+
                 try:
-                    # Redirect all standard streams to TTY
-                    os.dup2(tty_in_fd, stdin_fd)
-                    os.dup2(tty_out_fd, stdout_fd)
-                    os.dup2(tty_out_fd, stderr_fd)
-                    
-                    # Run menu
                     selection = curses.wrapper(menu.run)
                 except KeyboardInterrupt:
                     sys.exit(130)
                 finally:
-                    # Restore original file descriptors
-                    os.dup2(saved_stdin, stdin_fd)
-                    os.dup2(saved_stdout, stdout_fd)
-                    os.dup2(saved_stderr, stderr_fd)
-                    
-                    os.close(saved_stdin)
-                    os.close(saved_stdout)
-                    os.close(saved_stderr)
-        except (OSError, IOError) as e:
-            # Fallback if /dev/tty is not available
-            print(f"Error: Cannot open /dev/tty for interactive input: {e}", file=sys.stderr)
+                    # Restore stdin
+                    os.dup2(old_stdin_fd, 0)
+                    os.close(old_stdin_fd)
+                    sys.stdin = old_stdin
+        except (OSError, IOError):
+            # Fallback if /dev/tty is not available (e.g., running in non-interactive environment)
+            print("Error: Cannot open /dev/tty for interactive input.", file=sys.stderr)
             sys.exit(1)
 
         # Print selected item to stdout (don't execute)

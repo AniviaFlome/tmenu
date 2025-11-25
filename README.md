@@ -180,19 +180,17 @@ vim "$(find ~/notes -name '*.md' | tmenu --placeholder 'Select note')"
 
 ### Arrow Keys & Standard
 
-| Key               | Action                                          |
-| ----------------- | ----------------------------------------------- |
-| `↑` / `Ctrl+P`    | Move selection up (wraps)                       |
-| `↓` / `Ctrl+N`    | Move selection down (wraps)                     |
-| `Home` / `Ctrl+A` | Jump to first item                              |
-| `End` / `Ctrl+E`  | Jump to last item                               |
-| `Page Up`         | Move up 10 items                                |
-| `Page Down`       | Move down 10 items                              |
-| `Enter`           | Select current item                             |
-| `Escape` / `E`    | Go back (submenu) or exit (main menu)           |
-| `Q`               | Go back (submenu) or exit (main menu)           |
-
-
+| Key               | Action                                |
+| ----------------- | ------------------------------------- |
+| `↑` / `Ctrl+P`    | Move selection up (wraps)             |
+| `↓` / `Ctrl+N`    | Move selection down (wraps)           |
+| `Home` / `Ctrl+A` | Jump to first item                    |
+| `End` / `Ctrl+E`  | Jump to last item                     |
+| `Page Up`         | Move up 10 items                      |
+| `Page Down`       | Move down 10 items                    |
+| `Enter`           | Select current item                   |
+| `Escape` / `E`    | Go back (submenu) or exit (main menu) |
+| `Q`               | Go back (submenu) or exit (main menu) |
 
 ### Vim Keys
 
