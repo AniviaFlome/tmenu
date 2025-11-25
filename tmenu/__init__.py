@@ -314,7 +314,7 @@ class TMenu:
         curses.mousemask(mouse_mask)
         # Disable built-in mouse click delay since we handle double-clicks manually
         curses.mouseinterval(0)
-
+        
         colors = self.get_colors(stdscr)
 
         while True:
@@ -822,29 +822,44 @@ def main():
             is_submenu=False,
         )
 
-        # Reopen /dev/tty for interactive input since stdin is used for data
-        # This allows keyboard and mouse input to work in pipe mode
+        # Reopen /dev/tty for interactive input/output
+        # This ensures curses works correctly even when stdin/stdout are pipes
         try:
-            with open("/dev/tty", "r") as tty_input:
-                # Save original stdin fd
+            with open("/dev/tty", "r") as tty_in, open("/dev/tty", "w") as tty_out:
+                tty_in_fd = tty_in.fileno()
+                tty_out_fd = tty_out.fileno()
+                
+                # Save original file descriptors
                 stdin_fd = sys.stdin.fileno()
-                saved_stdin_fd = os.dup(stdin_fd)
+                stdout_fd = sys.stdout.fileno()
+                stderr_fd = sys.stderr.fileno()
+                
+                saved_stdin = os.dup(stdin_fd)
+                saved_stdout = os.dup(stdout_fd)
+                saved_stderr = os.dup(stderr_fd)
                 
                 try:
-                    # Redirect stdin to tty using dup2
-                    os.dup2(tty_input.fileno(), stdin_fd)
+                    # Redirect all standard streams to TTY
+                    os.dup2(tty_in_fd, stdin_fd)
+                    os.dup2(tty_out_fd, stdout_fd)
+                    os.dup2(tty_out_fd, stderr_fd)
                     
                     # Run menu
                     selection = curses.wrapper(menu.run)
                 except KeyboardInterrupt:
                     sys.exit(130)
                 finally:
-                    # Restore original stdin
-                    os.dup2(saved_stdin_fd, stdin_fd)
-                    os.close(saved_stdin_fd)
-        except (OSError, IOError):
+                    # Restore original file descriptors
+                    os.dup2(saved_stdin, stdin_fd)
+                    os.dup2(saved_stdout, stdout_fd)
+                    os.dup2(saved_stderr, stderr_fd)
+                    
+                    os.close(saved_stdin)
+                    os.close(saved_stdout)
+                    os.close(saved_stderr)
+        except (OSError, IOError) as e:
             # Fallback if /dev/tty is not available (e.g., running in non-interactive environment)
-            print("Error: Cannot open /dev/tty for interactive input.", file=sys.stderr)
+            print(f"Error: Cannot open /dev/tty for interactive input: {e}", file=sys.stderr)
             sys.exit(1)
 
         # Print selected item to stdout (don't execute)
