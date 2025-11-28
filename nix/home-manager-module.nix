@@ -55,13 +55,24 @@ in
         colors, and display settings - the freeform type auto-generates all options.
       '';
     };
+
+    extraConfig = mkOption {
+      type = types.lines;
+      default = "";
+      description = ''
+        Extra configuration lines to append to the generated TOML configuration.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
     home.packages = [ cfg.package ];
 
-    xdg.configFile."tmenu/config.toml" = mkIf (cfg.settings != { }) {
-      source = tomlFormat.generate "config.toml" cfg.settings;
+    xdg.configFile."tmenu/config.toml" = mkIf (cfg.settings != { } || cfg.extraConfig != "") {
+      text = ''
+        ${generators.toTOML { } cfg.settings}
+        ${cfg.extraConfig}
+      '';
     };
   };
 }
