@@ -69,9 +69,10 @@ in
     home.packages = [ cfg.package ];
 
     xdg.configFile."tmenu/config.toml" = mkIf (cfg.settings != { } || cfg.extraConfig != "") {
-      text = ''
-        ${generators.toTOML { } cfg.settings}
-        ${cfg.extraConfig}
+      source = pkgs.runCommand "config.toml" { } ''
+        cat ${tomlFormat.generate "generated.toml" cfg.settings} > $out
+        echo >> $out
+        cat ${pkgs.writeText "extra.toml" cfg.extraConfig} >> $out
       '';
     };
   };
