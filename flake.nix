@@ -42,7 +42,7 @@
 
       homeManagerModules = {
         default = import ./nix/home-manager-module.nix;
-        tmenu = self.homeManagerModues.default;
+        tmenu = self.homeManagerModules.default;
       };
 
       overlays = {

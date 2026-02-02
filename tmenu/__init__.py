@@ -80,6 +80,36 @@ class TMenu:
         self.last_click_item: Optional[int] = None
         self.double_click_delay = 0.2  # 200ms for double-click
 
+    def _move_up(self):
+        """Move selection up with wraparound."""
+        if self.selected_index > 0:
+            self.selected_index -= 1
+        else:
+            self.selected_index = len(self.all_items) - 1
+
+    def _move_down(self):
+        """Move selection down with wraparound."""
+        if self.selected_index < len(self.all_items) - 1:
+            self.selected_index += 1
+        else:
+            self.selected_index = 0
+
+    def _handle_selection(self, item_index: int) -> Optional[str]:
+        """Handle selection of an item. Returns command or special string."""
+        if item_index >= len(self.all_items):
+            return None
+        selected = self.all_items[item_index]
+        if selected == "← Back":
+            return "__GO_BACK__"
+        elif selected == "Exit":
+            return None
+        command = self.menu_items.get(selected, selected)
+        if command and command.startswith("submenu:"):
+            submenu_name = command[8:]
+            if submenu_name in self.submenus:
+                return f"__SUBMENU__{submenu_name}__{selected}"
+        return command
+
     def get_colors(self, stdscr) -> dict:
         """Initialize color pairs based on config."""
         colors = {}
@@ -112,9 +142,6 @@ class TMenu:
     def render_figlet_title(self, title: str) -> List[str]:
         """Render title using pyfiglet if available and enabled."""
         if not PYFIGLET_AVAILABLE or not self.config.get("figlet", False):
-            return [title]
-
-        if pyfiglet is None:
             return [title]
 
         try:
@@ -327,26 +354,11 @@ class TMenu:
 
             # Handle input
             if key == ord("\n"):  # Enter
-                if self.all_items and self.selected_index < len(self.all_items):
-                    selected = self.all_items[self.selected_index]
-
-                    # Handle special menu items
-                    if selected == "← Back":
-                        return "__GO_BACK__"
-                    elif selected == "Exit":
-                        return None
-
-                    command = self.menu_items.get(selected, selected)
-
-                    # Check if this is a submenu
-                    if command.startswith("submenu:"):
-                        submenu_name = command[8:]  # Remove 'submenu:' prefix
-                        if submenu_name in self.submenus:
-                            # Return signal to enter submenu with label
-                            return f"__SUBMENU__{submenu_name}__{selected}"
-                    else:
-                        # Execute command
-                        return command
+                result = self._handle_selection(self.selected_index)
+                if result is not None or (
+                    self.all_items and self.all_items[self.selected_index] == "Exit"
+                ):
+                    return result
                 return None
 
             elif key == 27 or key == ord("e"):  # Escape or 'e' key
@@ -369,22 +381,14 @@ class TMenu:
                         hasattr(curses, "BUTTON4_PRESSED")
                         and bstate & curses.BUTTON4_PRESSED
                     ):
-                        if self.selected_index > 0:
-                            self.selected_index -= 1
-                        else:
-                            # Wrap to bottom
-                            self.selected_index = len(self.all_items) - 1
+                        self._move_up()
 
                     # Handle scroll wheel - scroll down (if available)
                     elif (
                         hasattr(curses, "BUTTON5_PRESSED")
                         and bstate & curses.BUTTON5_PRESSED
                     ):
-                        if self.selected_index < len(self.all_items) - 1:
-                            self.selected_index += 1
-                        else:
-                            # Wrap to top
-                            self.selected_index = 0
+                        self._move_down()
 
                     # Check for native double-click first
                     is_native_double = bool(bstate & curses.BUTTON1_DOUBLE_CLICKED)
@@ -404,20 +408,12 @@ class TMenu:
 
                                 if is_native_double or is_manual_double:
                                     # Double-click - execute item
-                                    selected = self.all_items[item_idx]
-                                    if selected == "← Back":
-                                        return "__GO_BACK__"
-                                    elif selected == "Exit":
-                                        return None
-                                    command = self.menu_items.get(selected, selected)
-                                    if command and command.startswith("submenu:"):
-                                        submenu_name = command[8:]
-                                        if submenu_name in self.submenus:
-                                            return (
-                                                f"__SUBMENU__{submenu_name}__{selected}"
-                                            )
-                                    else:
-                                        return command
+                                    result = self._handle_selection(item_idx)
+                                    if (
+                                        result is not None
+                                        or self.all_items[item_idx] == "Exit"
+                                    ):
+                                        return result
                                 else:
                                     # Single click - move selection and
                                     # update click tracking
@@ -430,18 +426,10 @@ class TMenu:
 
             # Vim keys: j/k for up/down (with wraparound)
             elif key == ord("k"):  # Vim up
-                if self.selected_index > 0:
-                    self.selected_index -= 1
-                else:
-                    # Wrap to bottom
-                    self.selected_index = len(self.all_items) - 1
+                self._move_up()
 
             elif key == ord("j"):  # Vim down
-                if self.selected_index < len(self.all_items) - 1:
-                    self.selected_index += 1
-                else:
-                    # Wrap to top
-                    self.selected_index = 0
+                self._move_down()
 
             # Vim keys: h/l or g/G for home/end
             elif key == ord("h") or key == ord("g"):  # Vim home/top
@@ -452,18 +440,10 @@ class TMenu:
 
             # WASD keys: w/s for up/down (with wraparound)
             elif key == ord("w"):  # WASD up
-                if self.selected_index > 0:
-                    self.selected_index -= 1
-                else:
-                    # Wrap to bottom
-                    self.selected_index = len(self.all_items) - 1
+                self._move_up()
 
             elif key == ord("s"):  # WASD down
-                if self.selected_index < len(self.all_items) - 1:
-                    self.selected_index += 1
-                else:
-                    # Wrap to top
-                    self.selected_index = 0
+                self._move_down()
 
             # WASD keys: a/d for page up/down or home/end
             elif key == ord("a"):  # WASD left/home
@@ -476,34 +456,16 @@ class TMenu:
             elif ord("1") <= key <= ord("9"):
                 item_num = key - ord("1")  # 0-indexed
                 if item_num < len(self.all_items):
-                    # Execute the item directly
-                    selected = self.all_items[item_num]
-                    if selected == "← Back":
-                        return "__GO_BACK__"
-                    elif selected == "Exit":
-                        return None
-                    command = self.menu_items.get(selected, selected)
-                    if command and command.startswith("submenu:"):
-                        submenu_name = command[8:]
-                        if submenu_name in self.submenus:
-                            return f"__SUBMENU__{submenu_name}__{selected}"
-                    else:
-                        return command
+                    result = self._handle_selection(item_num)
+                    if result is not None or self.all_items[item_num] == "Exit":
+                        return result
 
             # Arrow keys and original shortcuts (with wraparound)
             elif key == curses.KEY_UP or key == 16:  # Up or Ctrl+P
-                if self.selected_index > 0:
-                    self.selected_index -= 1
-                else:
-                    # Wrap to bottom
-                    self.selected_index = len(self.all_items) - 1
+                self._move_up()
 
             elif key == curses.KEY_DOWN or key == 14:  # Down or Ctrl+N
-                if self.selected_index < len(self.all_items) - 1:
-                    self.selected_index += 1
-                else:
-                    # Wrap to top
-                    self.selected_index = 0
+                self._move_down()
 
             elif key == curses.KEY_PPAGE:  # Page Up
                 self.selected_index = max(0, self.selected_index - 10)
