@@ -165,11 +165,9 @@ class TMenu:
         menu_width = min(self.config.get("width", 60), width - 4)
         num_items = min(len(self.all_items), self.config.get("height", 10))
 
-        # Calculate title height
-        title_height = 0
-        if self.title:
-            title_lines = self.render_figlet_title(self.title)
-            title_height = len(title_lines)
+        # Render title once (reused for height calculation and drawing)
+        title_lines = self.render_figlet_title(self.title) if self.title else []
+        title_height = len(title_lines)
 
         # Menu height for items only (separator + items)
         items_height = num_items + 1  # +1 for separator
@@ -189,32 +187,30 @@ class TMenu:
         current_y = start_y
 
         # Draw title if present (with optional figlet)
-        if self.title:
-            title_lines = self.render_figlet_title(self.title)
-            for title_line in title_lines:
-                if current_y >= height:
-                    break
-                # Center or left-align title line
-                if self.centered:
-                    offset = max(0, (menu_width - len(title_line)) // 2)
-                    title_x = start_x + offset
-                else:
-                    title_x = start_x
-                try:
-                    display_line = (
-                        title_line[:menu_width]
-                        if len(title_line) > menu_width
-                        else title_line
-                    )
-                    stdscr.addstr(
-                        current_y,
-                        title_x,
-                        display_line,
-                        colors["prompt"] | curses.A_BOLD,
-                    )
-                except curses.error:
-                    pass
-                current_y += 1
+        for title_line in title_lines:
+            if current_y >= height:
+                break
+            # Center or left-align title line
+            if self.centered:
+                offset = max(0, (menu_width - len(title_line)) // 2)
+                title_x = start_x + offset
+            else:
+                title_x = start_x
+            try:
+                display_line = (
+                    title_line[:menu_width]
+                    if len(title_line) > menu_width
+                    else title_line
+                )
+                stdscr.addstr(
+                    current_y,
+                    title_x,
+                    display_line,
+                    colors["prompt"] | curses.A_BOLD,
+                )
+            except curses.error:
+                pass
+            current_y += 1
 
         # Draw separator
         sep_y = current_y
@@ -361,15 +357,8 @@ class TMenu:
                     return result
                 return None
 
-            elif key == 27 or key == ord("e"):  # Escape or 'e' key
-                if self.is_submenu:
-                    return "__GO_BACK__"
-                return None
-
-            elif key == ord("q"):  # Quit (or go back in submenu)
-                if self.is_submenu:
-                    return "__GO_BACK__"
-                return None
+            elif key in (27, ord("e"), ord("q")):  # Escape, 'e', or 'q'
+                return "__GO_BACK__" if self.is_submenu else None
 
             # Mouse support with double-click detection and scroll wheel
             elif key == curses.KEY_MOUSE:
@@ -424,32 +413,20 @@ class TMenu:
                 except Exception:
                     pass
 
-            # Vim keys: j/k for up/down (with wraparound)
-            elif key == ord("k"):  # Vim up
+            # Navigation: up (vim k, WASD w, arrow, Ctrl+P)
+            elif key in (ord("k"), ord("w"), curses.KEY_UP, 16):
                 self._move_up()
 
-            elif key == ord("j"):  # Vim down
+            # Navigation: down (vim j, WASD s, arrow, Ctrl+N)
+            elif key in (ord("j"), ord("s"), curses.KEY_DOWN, 14):
                 self._move_down()
 
-            # Vim keys: h/l or g/G for home/end
-            elif key == ord("h") or key == ord("g"):  # Vim home/top
+            # Navigation: home (vim h/g, WASD a, Home, Ctrl+A)
+            elif key in (ord("h"), ord("g"), ord("a"), curses.KEY_HOME, 1):
                 self.selected_index = 0
 
-            elif key == ord("l") or key == ord("G"):  # Vim end/bottom
-                self.selected_index = max(0, len(self.all_items) - 1)
-
-            # WASD keys: w/s for up/down (with wraparound)
-            elif key == ord("w"):  # WASD up
-                self._move_up()
-
-            elif key == ord("s"):  # WASD down
-                self._move_down()
-
-            # WASD keys: a/d for page up/down or home/end
-            elif key == ord("a"):  # WASD left/home
-                self.selected_index = 0
-
-            elif key == ord("d"):  # WASD right/end
+            # Navigation: end (vim l/G, WASD d, End, Ctrl+E)
+            elif key in (ord("l"), ord("G"), ord("d"), curses.KEY_END, 5):
                 self.selected_index = max(0, len(self.all_items) - 1)
 
             # Number keys 1-9 to execute items directly
@@ -460,26 +437,57 @@ class TMenu:
                     if result is not None or self.all_items[item_num] == "Exit":
                         return result
 
-            # Arrow keys and original shortcuts (with wraparound)
-            elif key == curses.KEY_UP or key == 16:  # Up or Ctrl+P
-                self._move_up()
-
-            elif key == curses.KEY_DOWN or key == 14:  # Down or Ctrl+N
-                self._move_down()
-
-            elif key == curses.KEY_PPAGE:  # Page Up
+            # Page Up/Down
+            elif key == curses.KEY_PPAGE:
                 self.selected_index = max(0, self.selected_index - 10)
 
-            elif key == curses.KEY_NPAGE:  # Page Down
+            elif key == curses.KEY_NPAGE:
                 self.selected_index = min(
                     len(self.all_items) - 1, self.selected_index + 10
                 )
 
-            elif key == curses.KEY_HOME or key == 1:  # Home or Ctrl+A
-                self.selected_index = 0
 
-            elif key == curses.KEY_END or key == 5:  # End or Ctrl+E
-                self.selected_index = max(0, len(self.all_items) - 1)
+def _parse_color_value(value) -> int:
+    """Convert a color value (hex string, color name, or int) to a terminal color number.
+
+    Supports:
+    - Hex colors: "#cba6f7" or "cba6f7"
+    - Integer values: 6, -1
+    - Named colors: "red", "cyan", etc.
+
+    Returns:
+        Terminal color number (int), or -1 for unrecognized values.
+    """
+    if isinstance(value, int):
+        return value
+
+    if isinstance(value, str):
+        value = value.strip()
+        # Hex color string
+        if value.startswith("#") or (
+            len(value) == 6 and all(c in "0123456789abcdefABCDEF" for c in value)
+        ):
+            hex_color = value.lstrip("#").lower()
+            return x256.from_hex(hex_color)
+        # Numeric string
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        # Named color
+        color_map = {
+            "black": 0,
+            "red": 1,
+            "green": 2,
+            "yellow": 3,
+            "blue": 4,
+            "magenta": 5,
+            "cyan": 6,
+            "white": 7,
+        }
+        return color_map.get(value.lower(), -1)
+
+    return -1
 
 
 def load_theme(theme_name: str) -> Optional[dict]:
@@ -658,49 +666,15 @@ def load_config(
     # Load theme colors first (can be overridden by config)
     if theme_data and "colors" in theme_data:
         for key, value in theme_data["colors"].items():
-            # Handle hex colors
-            if isinstance(value, str):
-                value = value.strip()
-                # Check if it's a hex color
-                if value.startswith("#") or (
-                    len(value) == 6
-                    and all(c in "0123456789abcdefABCDEF" for c in value)
-                ):
-                    # Use x256 library to convert hex to xterm-256
-                    hex_color = value.lstrip("#").lower()
-                    config[key] = x256.from_hex(hex_color)
-                else:
-                    # Try numeric value
-                    try:
-                        config[key] = int(value)
-                    except ValueError:
-                        config[key] = -1
-            elif isinstance(value, int):
-                config[key] = value
+            config[key] = _parse_color_value(value)
 
-    # Now load config (overrides theme)
+    # Now load config colors (overrides theme)
+    if data and "colors" in data:
+        for key, value in data["colors"].items():
+            config[key] = _parse_color_value(value)
+
+    # Load remaining config sections
     if data:
-        if "colors" in data:
-            color_map = {
-                "black": 0,
-                "red": 1,
-                "green": 2,
-                "yellow": 3,
-                "blue": 4,
-                "magenta": 5,
-                "cyan": 6,
-                "white": 7,
-            }
-
-            for key, value in data["colors"].items():
-                if isinstance(value, int):
-                    config[key] = value
-                elif isinstance(value, str):
-                    try:
-                        config[key] = int(value)
-                    except ValueError:
-                        config[key] = color_map.get(value.lower(), -1)
-
         if "display" in data:
             display = data["display"]
             if "centered" in display:
@@ -905,7 +879,3 @@ def main():
         else:
             # Exit selected or escaped from main menu
             sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()

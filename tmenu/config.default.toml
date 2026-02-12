@@ -9,7 +9,7 @@ title = "Main Menu"
 theme = "catppuccin-mocha"
 
 # Custom menus directory (optional)
-# themes_dir = "./themes"
+# theme_dir = "./themes"
 
 # ASCII art title with pyfiglet (requires: pip install pyfiglet)
 figlet = false
