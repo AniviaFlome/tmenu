@@ -8,30 +8,40 @@ import curses
 import os
 import shlex
 import sys
-import time
 from typing import Dict, List, Optional, Tuple
 
-# TOML parsing support
 try:
-    import tomllib  # Python 3.11+
+    import tomllib
 except ImportError:
-    import tomli as tomllib  # type: ignore  # Fallback
+    import tomli as tomllib  # type: ignore
 
 from x256 import x256  # type: ignore
 
-# Optional pyfiglet support for ASCII art titles
 try:
     import pyfiglet  # type: ignore
-
-    PYFIGLET_AVAILABLE = True
 except ImportError:
     pyfiglet = None  # type: ignore
-    PYFIGLET_AVAILABLE = False
+
+__all__ = ["TMenu", "main", "load_config", "load_theme"]
 
 
 def get_xdg_config_home() -> str:
     """Get XDG config directory, defaulting to ~/.config if not set."""
     return os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+
+
+DEFAULTS: dict = {
+    "foreground": 7,  # white
+    "background": -1,  # terminal default
+    "selection_foreground": 0,  # black
+    "selection_background": 6,  # cyan
+    "prompt_foreground": 4,  # blue
+    "centered": True,
+    "width": 60,
+    "height": 10,
+    "figlet": False,
+    "figlet_font": "standard",
+}
 
 
 class TMenu:
@@ -59,26 +69,20 @@ class TMenu:
         """
         self.all_items = list(items)
 
-        # Add Back option for submenus and Exit for all menus
         if is_submenu:
             self.all_items.append("← Back")
         self.all_items.append("Exit")
 
         self.selected_index = 0
         self.scroll_offset = 0
-        self.config = config or {}
+        self.config = {**DEFAULTS, **(config or {})}
         self.menu_items = menu_items or {}
         self.submenus = submenus or {}
         self.title = title
-        self.centered = self.config.get("centered", True)
+        self.centered = self.config["centered"]
         self.is_submenu = is_submenu
 
-        # For mouse support
-        # List of (y, start_x, end_x, item_index)
         self.item_positions: List[Tuple[int, int, int, int]] = []
-        self.last_click_time: float = 0.0
-        self.last_click_item: Optional[int] = None
-        self.double_click_delay = 0.2  # 200ms for double-click
 
     def _move_up(self):
         """Move selection up with wraparound."""
@@ -117,17 +121,15 @@ class TMenu:
         if curses.has_colors():
             curses.use_default_colors()
 
-            # Parse colors from config or use defaults
-            fg = self.config.get("foreground", 7)  # white
-            bg = self.config.get("background", -1)  # terminal default
-            sel_fg = self.config.get("selection_foreground", 0)  # black
-            sel_bg = self.config.get("selection_background", 6)  # cyan
-            prompt_fg = self.config.get("prompt_foreground", 4)  # blue
+            fg = self.config["foreground"]
+            bg = self.config["background"]
+            sel_fg = self.config["selection_foreground"]
+            sel_bg = self.config["selection_background"]
+            prompt_fg = self.config["prompt_foreground"]
 
-            # Initialize color pairs
-            curses.init_pair(1, fg, bg)  # Normal text
-            curses.init_pair(2, sel_fg, sel_bg)  # Selected item
-            curses.init_pair(3, prompt_fg, bg)  # Prompt
+            curses.init_pair(1, fg, bg)
+            curses.init_pair(2, sel_fg, sel_bg)
+            curses.init_pair(3, prompt_fg, bg)
 
             colors["normal"] = curses.color_pair(1)
             colors["selected"] = curses.color_pair(2)
@@ -141,19 +143,18 @@ class TMenu:
 
     def render_figlet_title(self, title: str) -> List[str]:
         """Render title using pyfiglet if available and enabled."""
-        if not PYFIGLET_AVAILABLE or not self.config.get("figlet", False):
+        if pyfiglet is None or not self.config["figlet"]:
             return [title]
 
         try:
-            font = self.config.get("figlet_font", "standard")
-            width = self.config.get("width", 60)
+            font = self.config["figlet_font"]
+            width = self.config["width"]
             fig = pyfiglet.Figlet(font=font, width=width)
             figlet_text = fig.renderText(title)
-            # Split into lines and remove trailing empty lines
+
             lines = figlet_text.rstrip("\n").split("\n")
             return lines
         except Exception:
-            # Fallback to plain title if figlet fails
             return [title]
 
     def draw(self, stdscr, colors: dict):
@@ -161,36 +162,31 @@ class TMenu:
         height, width = stdscr.getmaxyx()
         stdscr.clear()
 
-        # Calculate menu dimensions and position
-        menu_width = min(self.config.get("width", 60), width - 4)
-        num_items = min(len(self.all_items), self.config.get("height", 10))
+        menu_width = min(self.config["width"], width - 4)
+        num_items = min(len(self.all_items), self.config["height"])
 
-        # Render title once (reused for height calculation and drawing)
         title_lines = self.render_figlet_title(self.title) if self.title else []
         title_height = len(title_lines)
 
-        # Menu height for items only (separator + items)
-        items_height = num_items + 1  # +1 for separator
+        items_height = num_items + 1
 
-        # Always center vertically
         items_start_y = max(0, (height - items_height) // 2)
         start_y = max(0, items_start_y - title_height)
 
         if self.centered:
-            # Center horizontally as well
+
             start_x = max(0, (width - menu_width) // 2)
         else:
-            # Left-aligned, full width
+
             start_x = 0
             menu_width = width - 1
 
         current_y = start_y
 
-        # Draw title if present (with optional figlet)
         for title_line in title_lines:
             if current_y >= height:
                 break
-            # Center or left-align title line
+
             if self.centered:
                 offset = max(0, (menu_width - len(title_line)) // 2)
                 title_x = start_x + offset
@@ -212,7 +208,6 @@ class TMenu:
                 pass
             current_y += 1
 
-        # Draw separator
         sep_y = current_y
         if sep_y < height:
             separator = "─" * menu_width
@@ -221,24 +216,19 @@ class TMenu:
             except curses.error:
                 pass
 
-        # Calculate visible lines
         visible_lines = min(len(self.all_items), height - sep_y - 1)
         if visible_lines <= 0:
             stdscr.refresh()
             return
 
-        # Adjust scroll offset to keep selected item visible
         if self.selected_index < self.scroll_offset:
             self.scroll_offset = self.selected_index
         elif self.selected_index >= self.scroll_offset + visible_lines:
             self.scroll_offset = self.selected_index - visible_lines + 1
 
-        # Clear item positions for mouse support
         self.item_positions = []
 
-        # Calculate consistent indent for centered text alignment
         if self.centered:
-            # Find the longest item in visible range for proper centering
             max_item_len = 0
             for i in range(visible_lines):
                 item_index = i + self.scroll_offset
@@ -247,12 +237,11 @@ class TMenu:
                 item = self.all_items[item_index]
                 truncated_len = min(len(item), menu_width - 2)
                 max_item_len = max(max_item_len, truncated_len)
-            # Calculate indent to center the text block
+
             text_indent = (menu_width - max_item_len) // 2
         else:
             text_indent = 0
 
-        # Draw visible items
         for i in range(visible_lines):
             item_index = i + self.scroll_offset
             if item_index >= len(self.all_items):
@@ -261,15 +250,12 @@ class TMenu:
             item = self.all_items[item_index]
             y = sep_y + 1 + i
 
-            # Truncate item if too long
             display_item = (
                 item[: menu_width - 2] if len(item) > menu_width - 2 else item
             )
 
-            # Apply consistent text indent for centered mode
             item_x = start_x + text_indent
 
-            # Store position for mouse support
             if self.centered:
                 self.item_positions.append(
                     (y, start_x, start_x + menu_width, item_index)
@@ -279,10 +265,8 @@ class TMenu:
                     (y, item_x, item_x + len(display_item), item_index)
                 )
 
-            # Highlight selected item
             if item_index == self.selected_index:
                 attr = colors["selected"]
-                # Pad with spaces for full-width highlight
                 display_item = " " * text_indent + display_item.ljust(
                     menu_width - text_indent
                 )
@@ -295,7 +279,6 @@ class TMenu:
             except curses.error:
                 pass
 
-        # Draw scrollbar indicator if needed
         if len(self.all_items) > visible_lines:
             try:
                 idx = self.selected_index + 1
@@ -322,20 +305,14 @@ class TMenu:
         Returns:
             Selected item or None if cancelled
         """
-        curses.curs_set(0)  # Hide cursor
+        curses.curs_set(0)
         stdscr.keypad(True)
 
-        # Enable mouse support with explicit double-click and scroll wheel
-        mouse_mask = (
-            curses.BUTTON1_CLICKED
-            | curses.BUTTON1_DOUBLE_CLICKED
-            | curses.BUTTON1_TRIPLE_CLICKED
-        )
-        # Add scroll wheel support if available
+        mouse_mask = curses.BUTTON1_CLICKED | curses.BUTTON1_DOUBLE_CLICKED
         if hasattr(curses, "BUTTON4_PRESSED"):
-            mouse_mask |= curses.BUTTON4_PRESSED  # Scroll up
+            mouse_mask |= curses.BUTTON4_PRESSED
         if hasattr(curses, "BUTTON5_PRESSED"):
-            mouse_mask |= curses.BUTTON5_PRESSED  # Scroll down
+            mouse_mask |= curses.BUTTON5_PRESSED
         curses.mousemask(mouse_mask)
 
         colors = self.get_colors(stdscr)
@@ -348,8 +325,7 @@ class TMenu:
             except KeyboardInterrupt:
                 return None
 
-            # Handle input
-            if key == ord("\n"):  # Enter
+            if key == ord("\n"):
                 result = self._handle_selection(self.selected_index)
                 if result is not None or (
                     self.all_items and self.all_items[self.selected_index] == "Exit"
@@ -357,46 +333,32 @@ class TMenu:
                     return result
                 return None
 
-            elif key in (27, ord("e"), ord("q")):  # Escape, 'e', or 'q'
+            elif key in (27, ord("e"), ord("q")):
                 return "__GO_BACK__" if self.is_submenu else None
 
-            # Mouse support with double-click detection and scroll wheel
             elif key == curses.KEY_MOUSE:
                 try:
                     _, mx, my, _, bstate = curses.getmouse()
 
-                    # Handle scroll wheel - scroll up (if available)
                     if (
                         hasattr(curses, "BUTTON4_PRESSED")
                         and bstate & curses.BUTTON4_PRESSED
                     ):
                         self._move_up()
-
-                    # Handle scroll wheel - scroll down (if available)
                     elif (
                         hasattr(curses, "BUTTON5_PRESSED")
                         and bstate & curses.BUTTON5_PRESSED
                     ):
                         self._move_down()
 
-                    # Check for native double-click first
-                    is_native_double = bool(bstate & curses.BUTTON1_DOUBLE_CLICKED)
-
-                    # Handle single/double clicks
-                    if bstate & curses.BUTTON1_CLICKED or is_native_double:
-                        current_time = time.time()
-                        # Check if click is on a menu item
+                    elif bstate & (
+                        curses.BUTTON1_CLICKED | curses.BUTTON1_DOUBLE_CLICKED
+                    ):
+                        is_double = bool(bstate & curses.BUTTON1_DOUBLE_CLICKED)
                         for y, start_x, end_x, item_idx in self.item_positions:
                             if my == y and start_x <= mx < end_x:
-                                # Check for double-click (native or manual)
-                                is_manual_double = (
-                                    self.last_click_item == item_idx
-                                    and (current_time - self.last_click_time)
-                                    < self.double_click_delay
-                                )
+                                if is_double:
 
-                                if is_native_double or is_manual_double:
-                                    # Double-click - execute item
                                     result = self._handle_selection(item_idx)
                                     if (
                                         result is not None
@@ -404,40 +366,31 @@ class TMenu:
                                     ):
                                         return result
                                 else:
-                                    # Single click - move selection and
-                                    # update click tracking
+
                                     self.selected_index = item_idx
-                                    self.last_click_item = item_idx
-                                    self.last_click_time = current_time
                                 break
                 except Exception:
                     pass
 
-            # Navigation: up (vim k, WASD w, arrow, Ctrl+P)
-            elif key in (ord("k"), ord("w"), curses.KEY_UP, 16):
+            elif key in (ord("k"), curses.KEY_UP, 16):
                 self._move_up()
 
-            # Navigation: down (vim j, WASD s, arrow, Ctrl+N)
-            elif key in (ord("j"), ord("s"), curses.KEY_DOWN, 14):
+            elif key in (ord("j"), curses.KEY_DOWN, 14):
                 self._move_down()
 
-            # Navigation: home (vim h/g, WASD a, Home, Ctrl+A)
-            elif key in (ord("h"), ord("g"), ord("a"), curses.KEY_HOME, 1):
+            elif key in (ord("g"), curses.KEY_HOME, 1):
                 self.selected_index = 0
 
-            # Navigation: end (vim l/G, WASD d, End, Ctrl+E)
-            elif key in (ord("l"), ord("G"), ord("d"), curses.KEY_END, 5):
+            elif key in (ord("G"), curses.KEY_END, 5):
                 self.selected_index = max(0, len(self.all_items) - 1)
 
-            # Number keys 1-9 to execute items directly
             elif ord("1") <= key <= ord("9"):
-                item_num = key - ord("1")  # 0-indexed
+                item_num = key - ord("1")
                 if item_num < len(self.all_items):
                     result = self._handle_selection(item_num)
                     if result is not None or self.all_items[item_num] == "Exit":
                         return result
 
-            # Page Up/Down
             elif key == curses.KEY_PPAGE:
                 self.selected_index = max(0, self.selected_index - 10)
 
@@ -463,18 +416,18 @@ def _parse_color_value(value) -> int:
 
     if isinstance(value, str):
         value = value.strip()
-        # Hex color string
+
         if value.startswith("#") or (
             len(value) == 6 and all(c in "0123456789abcdefABCDEF" for c in value)
         ):
             hex_color = value.lstrip("#").lower()
             return x256.from_hex(hex_color)
-        # Numeric string
+
         try:
             return int(value)
         except ValueError:
             pass
-        # Named color
+
         color_map = {
             "black": 0,
             "red": 1,
@@ -497,32 +450,23 @@ def load_theme(theme_name: str) -> Optional[dict]:
     1. $XDG_CONFIG_HOME/tmenu/themes/{theme_name}.toml
     2. Package installation directory (bundled themes via pip)
     3. System data directories from $XDG_DATA_DIRS
-    4. ./themes/{theme_name}.toml (development fallback)
 
     Returns:
         Dictionary with theme config if theme found, None otherwise
     """
     theme_locations = [
-        # User config directory
         os.path.join(get_xdg_config_home(), "tmenu", "themes", f"{theme_name}.toml"),
     ]
 
-    # Bundled themes in package installation directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    package_themes = os.path.join(script_dir, "themes", f"{theme_name}.toml")
-    theme_locations.append(package_themes)
+    theme_locations.append(os.path.join(script_dir, "themes", f"{theme_name}.toml"))
 
-    # Add system data directories from XDG_DATA_DIRS
     xdg_data_dirs = os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share")
     for data_dir in xdg_data_dirs.split(":"):
         if data_dir:
             theme_locations.append(
                 os.path.join(data_dir, "tmenu", "themes", f"{theme_name}.toml")
             )
-
-    # Development fallback - relative to script parent location
-    parent_dir = os.path.dirname(script_dir)
-    theme_locations.append(os.path.join(parent_dir, "themes", f"{theme_name}.toml"))
 
     for theme_path in theme_locations:
         if os.path.exists(theme_path):
@@ -540,27 +484,22 @@ def create_default_config():
     config_dir = os.path.join(get_xdg_config_home(), "tmenu")
     config_file = os.path.join(config_dir, "config.toml")
 
-    # Don't create if it already exists
     if os.path.exists(config_file):
         return
 
-    # Create directory if needed
     os.makedirs(config_dir, exist_ok=True)
 
-    # Get path to default config file (in same directory)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     default_config_path = os.path.join(script_dir, "config.default.toml")
 
     try:
-        # Read default config from file
         with open(default_config_path, "r") as f:
             default_config = f.read()
 
-        # Write to user config
         with open(config_file, "w") as f:
             f.write(default_config)
     except Exception:
-        pass  # Silently fail if we can't create config
+        pass
 
 
 def load_custom_menus(
@@ -577,18 +516,14 @@ def load_custom_menus(
     menu_items: Dict[str, str] = {}
     submenus: Dict[str, Dict[str, str]] = {}
 
-    # Return empty if no directory specified
     if theme_dir is None:
         return menu_items, submenus
 
-    # Expand user path
     theme_dir = os.path.expanduser(theme_dir)
 
-    # Return empty if directory doesn't exist
     if not os.path.exists(theme_dir) or not os.path.isdir(theme_dir):
         return menu_items, submenus
 
-    # Load all .toml files from theme directory
     try:
         for filename in sorted(os.listdir(theme_dir)):
             if filename.endswith(".toml"):
@@ -597,25 +532,48 @@ def load_custom_menus(
                     with open(menu_path, "rb") as f:
                         data = tomllib.load(f)
 
-                    # Load menu items
                     if "menu" in data:
                         for label, command in data["menu"].items():
                             menu_items[label] = command
 
-                    # Load submenus (keys starting with "submenu.")
                     for section_name, section_data in data.items():
                         if section_name.startswith("submenu."):
-                            # Remove 'submenu.' prefix
                             submenu_name = section_name[8:]
                             if submenu_name not in submenus:
                                 submenus[submenu_name] = {}
                             submenus[submenu_name].update(section_data)
                 except Exception:
-                    continue  # Skip invalid files
+                    continue
     except Exception:
-        pass  # Silently fail if directory can't be read
+        pass
 
     return menu_items, submenus
+
+
+def _parse_display_config(display: dict, config: dict) -> str:
+    """Parse the [display] section into config dict. Returns the title string.
+
+    Args:
+        display: The raw display section from the TOML data.
+        config: The config dict to populate (mutated in place).
+
+    Returns:
+        The title string from the display section, or empty string.
+    """
+
+    display_fields = {
+        "centered": bool,
+        "width": int,
+        "height": int,
+        "figlet": bool,
+        "figlet_font": str,
+        "theme_dir": str,
+    }
+    for key, cast in display_fields.items():
+        if key in display:
+            config[key] = cast(display[key])
+
+    return str(display.get("title", ""))
 
 
 def load_config(
@@ -626,83 +584,54 @@ def load_config(
     Returns:
         Tuple of (config dict, menu_items dict, submenus dict, title string)
     """
-    # Create default config if none exists
     if config_path is None:
+
         create_default_config()
+        default_path = os.path.join(get_xdg_config_home(), "tmenu", "config.toml")
+        if os.path.exists(default_path):
+            config_path = default_path
 
-    if config_path is None:
-        # Try default locations
-        config_locations = [
-            os.path.join(get_xdg_config_home(), "tmenu", "config.toml"),
-        ]
-        for loc in config_locations:
-            if os.path.exists(loc):
-                config_path = loc
-                break
-
-    config = {}
-    menu_items = {}
-    submenus = {}
+    config: dict = {}
+    menu_items: Dict[str, str] = {}
+    submenus: Dict[str, Dict[str, str]] = {}
     title = ""
 
     data = None
 
-    # Load config file
     if config_path and os.path.exists(config_path):
         try:
             with open(config_path, "rb") as f:
                 data = tomllib.load(f)
         except Exception:
-            pass  # Silently fail if config can't be loaded
+            pass
 
-    # First, check if config specifies a theme and load it
-    theme_data = None
     if data and "display" in data and "theme" in data["display"]:
         theme_name = data["display"]["theme"]
-        # Only load theme if name is not empty
+
         if theme_name and theme_name.strip():
             theme_data = load_theme(theme_name)
 
-    # Load theme colors first (can be overridden by config)
-    if theme_data and "colors" in theme_data:
-        for key, value in theme_data["colors"].items():
-            config[key] = _parse_color_value(value)
+            if theme_data and "colors" in theme_data:
+                for key, value in theme_data["colors"].items():
+                    config[key] = _parse_color_value(value)
 
-    # Now load config colors (overrides theme)
     if data and "colors" in data:
         for key, value in data["colors"].items():
             config[key] = _parse_color_value(value)
 
-    # Load remaining config sections
     if data:
         if "display" in data:
-            display = data["display"]
-            if "centered" in display:
-                config["centered"] = bool(display["centered"])
-            if "width" in display:
-                config["width"] = int(display["width"])
-            if "height" in display:
-                config["height"] = int(display["height"])
-            if "title" in display:
-                title = str(display["title"])
-            if "figlet" in display:
-                config["figlet"] = bool(display["figlet"])
-            if "figlet_font" in display:
-                config["figlet_font"] = str(display["figlet_font"])
-            if "theme_dir" in display:
-                config["theme_dir"] = str(display["theme_dir"])
+            title = _parse_display_config(data["display"], config)
 
         if "menu" in data:
             for label, command in data["menu"].items():
                 menu_items[label] = command
 
-        # Load submenus (sections like [submenu.Development])
         for section_name, section_data in data.items():
             if section_name.startswith("submenu."):
-                submenu_name = section_name[8:]  # Remove 'submenu.' prefix
+                submenu_name = section_name[8:]
                 submenus[submenu_name] = dict(section_data)
 
-    # Load and merge custom menus if theme_dir is configured
     theme_dir = config.get("theme_dir")
     custom_menu_items, custom_submenus = load_custom_menus(theme_dir)
     menu_items.update(custom_menu_items)
@@ -724,83 +653,74 @@ def read_stdin_items() -> List[str]:
     items = []
     for line in sys.stdin:
         line = line.rstrip("\n\r")
-        if line:  # Skip empty lines
+        if line:
             items.append(line)
     return items
 
 
-def main():
-    """Main entry point."""
-    parser = argparse.ArgumentParser(description="tmenu - A configurable terminal menu")
-    parser.add_argument("-c", "--config", help="Path to configuration file")
-    parser.add_argument(
-        "--placeholder", help="Title to display when reading from stdin"
+def _run_stdin_mode(args, config: dict) -> None:
+    """Run tmenu in stdin/pipe mode (dmenu-like).
+
+    Reads items from stdin, displays a selection menu, and prints
+    the selected item to stdout.
+    """
+    stdin_items = read_stdin_items()
+
+    if not stdin_items:
+        print("Error: No items received from stdin.", file=sys.stderr)
+        sys.exit(1)
+
+    title = args.placeholder if args.placeholder else ""
+
+    menu = TMenu(
+        stdin_items,
+        config=config,
+        menu_items={},
+        submenus={},
+        title=title,
+        is_submenu=False,
     )
 
-    args = parser.parse_args()
+    try:
+        with open("/dev/tty", "r") as tty_input:
+            # dup2 required because curses reads from fd 0 directly
+            old_stdin_fd = os.dup(0)
+            os.dup2(tty_input.fileno(), 0)
+            old_stdin = sys.stdin
+            sys.stdin = tty_input
 
-    # Check if stdin is being piped (dmenu-like mode)
-    if not sys.stdin.isatty():
-        # Read items from stdin
-        stdin_items = read_stdin_items()
+            try:
+                selection = curses.wrapper(menu.run)
+            except KeyboardInterrupt:
+                sys.exit(130)
+            finally:
 
-        if not stdin_items:
-            print("Error: No items received from stdin.", file=sys.stderr)
-            sys.exit(1)
+                os.dup2(old_stdin_fd, 0)
+                os.close(old_stdin_fd)
+                sys.stdin = old_stdin
+    except (OSError, IOError):
+        print("Error: Cannot open /dev/tty for interactive input.", file=sys.stderr)
+        sys.exit(1)
 
-        # Load config for theme/display settings only
-        config, _, _, _ = load_config(args.config)
+    if selection and not selection.startswith("__"):
+        print(selection)
+        sys.exit(0)
+    else:
+        sys.exit(1)
 
-        # Use placeholder as title if provided
-        title = args.placeholder if args.placeholder else ""
 
-        # Create simple menu without commands
-        menu = TMenu(
-            stdin_items,
-            config=config,
-            menu_items={},  # No command execution in stdin mode
-            submenus={},
-            title=title,
-            is_submenu=False,
-        )
+def _run_config_mode(
+    args,
+    config: dict,
+    menu_items: Dict[str, str],
+    submenus: Dict[str, Dict[str, str]],
+    title: str,
+) -> None:
+    """Run tmenu in config mode (command executor).
 
-        # Reopen /dev/tty for interactive input since stdin is used for data
-        # This allows keyboard and mouse input to work in pipe mode
-        try:
-            with open("/dev/tty", "r") as tty_input:
-                # Redirect stdin to the terminal for curses
-                # We must use dup2 because curses (C library) reads from fd 0
-                old_stdin_fd = os.dup(0)
-                os.dup2(tty_input.fileno(), 0)
-
-                # Update sys.stdin wrapper as well
-                old_stdin = sys.stdin
-                sys.stdin = tty_input
-
-                try:
-                    selection = curses.wrapper(menu.run)
-                except KeyboardInterrupt:
-                    sys.exit(130)
-                finally:
-                    # Restore stdin
-                    os.dup2(old_stdin_fd, 0)
-                    os.close(old_stdin_fd)
-                    sys.stdin = old_stdin
-        except (OSError, IOError):
-            # Fallback if /dev/tty is not available (e.g., running in non-interactive environment)
-            print("Error: Cannot open /dev/tty for interactive input.", file=sys.stderr)
-            sys.exit(1)
-
-        # Print selected item to stdout (don't execute)
-        if selection and not selection.startswith("__"):
-            print(selection)
-            sys.exit(0)
-        else:
-            sys.exit(1)
-    # Load configuration
-    config, menu_items, submenus, title = load_config(args.config)
-
-    # Check if we have menu items
+    Displays menu items from config, supports submenus, and executes
+    the selected command.
+    """
     if not menu_items:
         print("Error: No menu items found in configuration.", file=sys.stderr)
         config_path = f"{get_xdg_config_home()}/tmenu/config.toml"
@@ -811,17 +731,14 @@ def main():
         print("with a [menu] section defining your menu items.", file=sys.stderr)
         sys.exit(1)
 
-    # Main menu loop with stack for submenu navigation
-    menu_stack = []
+    menu_stack: List[Tuple[str, str]] = []
     current_items = list(menu_items.keys())
-    current_menu_items = menu_items
+    current_menu_items: Dict[str, str] = menu_items
     current_title = title
 
     while True:
-        # Determine if we're in a submenu
         is_submenu = len(menu_stack) > 0
 
-        # Run menu
         menu = TMenu(
             current_items,
             config=config,
@@ -837,23 +754,19 @@ def main():
             sys.exit(130)
 
         if selection == "__GO_BACK__":
-            # Go back to previous menu
             if menu_stack:
                 menu_stack.pop()
                 if menu_stack:
-                    # Return to submenu
                     submenu_name, submenu_label = menu_stack[-1]
                     current_items = list(submenus[submenu_name].keys())
                     current_menu_items = submenus[submenu_name]
                     current_title = submenu_label
                 else:
-                    # Return to main menu
                     current_items = list(menu_items.keys())
                     current_menu_items = menu_items
                     current_title = title
             continue
         elif selection and selection.startswith("__SUBMENU__"):
-            # Enter submenu
             parts = selection.split("__")
             submenu_name = parts[2]
             submenu_label = parts[3] if len(parts) > 3 else submenu_name
@@ -863,7 +776,6 @@ def main():
             current_title = submenu_label
             continue
         elif selection:
-            # Execute the command
             try:
                 cmd_parts = shlex.split(selection)
                 os.execvp(cmd_parts[0], cmd_parts)
@@ -877,5 +789,22 @@ def main():
                 print(f"tmenu: error executing command: {e}", file=sys.stderr)
                 sys.exit(1)
         else:
-            # Exit selected or escaped from main menu
             sys.exit(0)
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(description="tmenu - A configurable terminal menu")
+    parser.add_argument("-c", "--config", help="Path to configuration file")
+    parser.add_argument(
+        "--placeholder", help="Title to display when reading from stdin"
+    )
+
+    args = parser.parse_args()
+
+    config, menu_items, submenus, title = load_config(args.config)
+
+    if not sys.stdin.isatty():
+        _run_stdin_mode(args, config)
+    else:
+        _run_config_mode(args, config, menu_items, submenus, title)

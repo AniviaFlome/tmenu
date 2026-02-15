@@ -36,18 +36,23 @@ Then either:
         theme = "catppuccin-mocha";
         figlet = false;
       };
-
-      menu = {
-        Terminal = "alacritty";
-        Browser = "firefox";
-        System = "submenu:System";
-      };
-
-      "submenu.System" = {
-        "File Manager" = "thunar";
-        "System Monitor" = "htop";
-      };
     };
+
+    menuItems = [
+      { name = "Terminal"; command = "alacritty"; }
+      { name = "Browser"; command = "firefox"; }
+      { name = "System"; command = "submenu:System"; }
+    ];
+
+    submenus = [
+      {
+        name = "System";
+        items = [
+          { name = "File Manager"; command = "thunar"; }
+          { name = "System Monitor"; command = "htop"; }
+        ];
+      }
+    ];
   };
 }
 ```
@@ -194,21 +199,12 @@ vim "$(find ~/notes -name '*.md' | tmenu --placeholder 'Select note')"
 
 ### Vim Keys
 
-| Key       | Action                      |
-| --------- | --------------------------- |
-| `j`       | Move selection down (wraps) |
-| `k`       | Move selection up (wraps)   |
-| `h` / `g` | Jump to first item          |
-| `l` / `G` | Jump to last item           |
-
-### WASD Keys
-
 | Key | Action                      |
 | --- | --------------------------- |
-| `w` | Move selection up (wraps)   |
-| `s` | Move selection down (wraps) |
-| `a` | Jump to first item          |
-| `d` | Jump to last item           |
+| `j` | Move selection down (wraps) |
+| `k` | Move selection up (wraps)   |
+| `g` | Jump to first item          |
+| `G` | Jump to last item           |
 
 ### Number Shortcuts
 
@@ -243,7 +239,7 @@ Or specify with `-c` flag.
   - `theme` - Theme name to load (optional, e.g., nord, dracula)
   - `figlet` - Enable ASCII art title with pyfiglet (true/false)
   - `figlet_font` - Font to use for figlet (e.g., standard, slant, banner)
-  - `themes_dir` - Directory path for custom menu imports (optional)
+  - `theme_dir` - Directory path for custom menu imports (optional)
 
 - **`[colors]`** - Color settings (optional if using a theme)
   - `foreground` - Normal text color
@@ -320,10 +316,10 @@ You can add additional menu items without editing your main `config.toml` by cre
 ```toml
 [display]
 # Relative path (relative to $XDG_CONFIG_HOME/tmenu/)
-themes_dir = "menus"
+theme_dir = "menus"
 
 # Absolute paths also work
-# themes_dir = "~/.local/share/tmenu/menus"
+# theme_dir = "~/.local/share/tmenu/menus"
 ```
 
 ## Development
@@ -354,7 +350,7 @@ nix build
 nix-shell
 
 # Run tmenu
-python tmenu.py
+python -m tmenu
 
 # Run tests
 pytest

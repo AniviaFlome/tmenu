@@ -16,7 +16,7 @@ python3Packages.buildPythonApplication {
     wheel
   ];
 
-  propagatedBuildInputs = with python3Packages; [
+  dependencies = with python3Packages; [
     x256
     pyfiglet
     tomli
