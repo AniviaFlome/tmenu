@@ -27,7 +27,7 @@ where = ["."]
 include = ["tmenu*"]
 
 [tool.setuptools.package-data]
-tmenu = ["config.default.toml", "themes/*.toml"]
+tmenu = ["themes/*.toml"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

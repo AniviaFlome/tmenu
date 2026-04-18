@@ -19,7 +19,7 @@ figlet_font = "standard"
 # Custom menus directory (optional)
 # If set, all .toml files in this directory will be loaded and merged with main menu
 # Supports relative paths (e.g., menus) or absolute paths
-# themes_dir = "menus"
+# theme_dir = "menus"
 
 [menu]
 # Main menu - use submenu:NAME to create submenus

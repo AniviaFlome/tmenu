@@ -2,19 +2,18 @@
   pkgs ? import <nixpkgs> { },
 }:
 
+let
+  python = pkgs.python3.withPackages (ps: [
+    ps.pytest
+    ps.pytest-cov
+    ps.pyfiglet
+    ps.x256
+  ]);
+in
 pkgs.mkShell {
-  buildInputs = with pkgs; [
-    # Python and dependencies
-    python3
-    python3Packages.pytest
-    python3Packages.pytest-cov
-
-    # Development tools
-    pyright
-    python3Packages.flake8
-    python3Packages.mypy
-    python3Packages.pyfiglet
-    python3Packages.x256
+  packages = [
+    python
+    pkgs.pyright
   ];
 
   shellHook = ''
@@ -26,7 +25,5 @@ pkgs.mkShell {
     echo "  nix fmt                  - Format all files"
     echo "  pytest                   - Run tests"
     echo "  pyright tmenu/           - Check errors"
-    echo "  flake8 tmenu/            - Lint code"
-    echo "  mypy tmenu/              - Type check code"
   '';
 }

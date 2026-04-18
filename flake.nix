@@ -40,6 +40,10 @@
         formatting = treefmtEval.${pkgs.stdenv.hostPlatform.system}.config.build.check self;
       });
 
+      devShells = eachSystem (pkgs: {
+        default = import ./shell.nix { inherit pkgs; };
+      });
+
       homeManagerModules = {
         default = import ./nix/home-manager-module.nix;
         tmenu = self.homeManagerModules.default;

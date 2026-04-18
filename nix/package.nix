@@ -32,8 +32,7 @@ python3Packages.buildPythonApplication {
     description = "dmenu for terminal";
     homepage = "https://github.com/AniviaFlome/tmenu";
     license = licenses.mit;
-    maintainers = [ AniviaFlome ];
-    platforms = lib.platforms.all;
+    platforms = platforms.unix;
     mainProgram = "tmenu";
   };
 }
